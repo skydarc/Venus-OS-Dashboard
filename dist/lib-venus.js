@@ -14,6 +14,35 @@ let mustRedrawLine = true;
 
 let editorOpen = false;
 
+/********************************************************/
+/* Helper function to format entity state with separate */
+/* unit styling using CSS class `boxUnit`.              */
+/********************************************************/
+function formatEntityWithUnit(hass) {
+    return (entityId) => {
+        // Look up entity state from hass.states using the entity ID
+        const stateObj = hass.states[entityId];
+
+        // Handle null/undefined state - return empty string for display
+        if (!stateObj) {
+            return '';
+        }
+
+        const formattedValue = hass.formatEntityState(stateObj);
+        const unit = stateObj.attributes?.unit_of_measurement;
+
+        // If formatted value ends with the unit, ensure it is styled correctly.
+        if (unit && formattedValue.endsWith(unit)) {
+          // Extract value with locale-specific spacing preserved
+          const valueWithSpace = formattedValue.slice(0, -unit.length);
+          return `${valueWithSpace}<div class="boxUnit">${unit}</div>`;
+        }
+
+        // Return formatted value as-is
+        return formattedValue;
+    };
+}
+
 /************************************************/
 /* fonction de rendu du squelette de la carte : */
 /* rend une image si dans le YAML, mode = DEMO  */
@@ -163,9 +192,9 @@ function creatAnchors(colNbrs, boxNbrs, numAnchors, type, appendTo) {
 /* (defini ou auto),                          */
 /**********************************************/
 export function fillBox(config, styles, isDark, hass, appendTo) {
-    
+    const formatEntity = formatEntityWithUnit(hass);
     const devices = config.devices || [];
-    
+
     for (const boxId in devices) {
         
         const boxIdtest = parseInt(boxId[2], 10);
@@ -183,8 +212,7 @@ export function fillBox(config, styles, isDark, hass, appendTo) {
         const innerContent = appendTo.querySelector(`#dashboard > #column-${boxId[0]} > #box_${boxId} > #content_${boxId}`);
                 
         let state = hass.states[device.entity];
-        let value = state ? state.state : 'N/C';
-        let unit = state && state.attributes.unit_of_measurement ? state.attributes.unit_of_measurement : '';
+        const rawValue = state ? state.state : 'N/C';
             
         let addGauge = "";
         let addHeaderEntity = "";
@@ -197,7 +225,7 @@ export function fillBox(config, styles, isDark, hass, appendTo) {
         
         if(device.graph) creatGraph(boxId, device, isDark, appendTo);
         
-        if(device.gauge) divGauge.style.height = value + `%`;
+        if(device.gauge) divGauge.style.height = rawValue + `%`;
         else divGauge.style.height = `0px`;
             
         if(styles.header != "") {
@@ -261,44 +289,23 @@ export function fillBox(config, styles, isDark, hass, appendTo) {
         }
             
         if(device.headerEntity) {
-            const stateHeaderEnt = hass.states[device.headerEntity];
-            const valueHeaderEnt = stateHeaderEnt ? stateHeaderEnt.state : '';
-            const unitvalueHeaderEnt = stateHeaderEnt && stateHeaderEnt.attributes.unit_of_measurement ? stateHeaderEnt.attributes.unit_of_measurement : '';
-                
             addHeaderEntity = `
-                <div class="headerEntity">${valueHeaderEnt}<div class="boxUnit">${unitvalueHeaderEnt}</div></div>
+                <div class="headerEntity">${formatEntity(device.headerEntity)}</div>
             `;
         }
         
         if(device.entity2) {
-            const stateEntity2 = hass.states[device.entity2];
-            const valueEntity2 = stateEntity2 ? stateEntity2.state : '';
-            const unitvalueEntity2 = stateEntity2 && stateEntity2.attributes.unit_of_measurement ? stateEntity2.attributes.unit_of_measurement : '';
-                
             addEntity2 = `
-                <div class="boxSensor2"${addSensor2Style}>${valueEntity2}<div class="boxUnit">${unitvalueEntity2}</div></div>
+                <div class="boxSensor2"${addSensor2Style}>${formatEntity(device.entity2)}</div>
             `;
         }
             
         if(device.footerEntity1) {
-                
-            const stateFooterEnt1 = hass.states[device.footerEntity1];
-            const valueFooterEnt1 = stateFooterEnt1 ? stateFooterEnt1.state : '';
-            const unitvalueFooterEnt1 = stateFooterEnt1 && stateFooterEnt1.attributes.unit_of_measurement ? stateFooterEnt1.attributes.unit_of_measurement : '';
-                
-            const stateFooterEnt2 = hass.states[device.footerEntity2];
-            const valueFooterEnt2 = stateFooterEnt2 ? stateFooterEnt2.state : '';
-            const unitvalueFooterEnt2 = stateFooterEnt2 && stateFooterEnt2.attributes.unit_of_measurement ? stateFooterEnt2.attributes.unit_of_measurement : '';
-                
-            const stateFooterEnt3 = hass.states[device.footerEntity3];
-            const valueFooterEnt3 = stateFooterEnt3 ? stateFooterEnt3.state : '';
-            const unitvalueFooterEnt3 = stateFooterEnt3 && stateFooterEnt3.attributes.unit_of_measurement ? stateFooterEnt3.attributes.unit_of_measurement : '';
-            
             addFooter = `
                 <div class="boxFooter"${addFooterStyle}>
-                    <div class="footerCell">${valueFooterEnt1}<div class="boxUnit">${unitvalueFooterEnt1}</div></div>
-                    <div class="footerCell">${valueFooterEnt2}<div class="boxUnit">${unitvalueFooterEnt2}</div></div>
-                    <div class="footerCell">${valueFooterEnt3}<div class="boxUnit">${unitvalueFooterEnt3}</div></div>
+                    <div class="footerCell">${formatEntity(device.footerEntity1)}</div>
+                    <div class="footerCell">${formatEntity(device.footerEntity2)}</div>
+                    <div class="footerCell">${formatEntity(device.footerEntity3)}</div>
                 </div>
             `;
         }
@@ -309,7 +316,7 @@ export function fillBox(config, styles, isDark, hass, appendTo) {
                 <div class="boxTitle">${device.name}</div>
                 ${addHeaderEntity}
             </div>
-            <div class="boxSensor1"${addSensorStyle}>${value}<div class="boxUnit">${unit}</div></div>
+            <div class="boxSensor1"${addSensorStyle}>${formatEntity(device.entity) || 'N/C'}</div>
             ${addEntity2}
             ${addFooter}
         `;
@@ -1068,4 +1075,3 @@ export function getDefaultConfig(hass) {
         },
     }
 }
-
