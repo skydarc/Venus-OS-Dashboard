@@ -58,26 +58,18 @@ class venusOsDashBoardEditor extends HTMLElement {
             
             libEditor.tab1Render(this);
             
-            console.log("conf.");
-            
         } else if (this._currentTab === 1) {
             
             libEditor.tabColRender(1, this);
-            
-            console.log("tab 1");
     
         } else if (this._currentTab === 2) {
             
             libEditor.tabColRender(2, this);
             
-            console.log("tab 2");
-            
         } else if (this._currentTab === 3) {
             
             libEditor.tabColRender(3, this);
-            
-            console.log("tab 3");
-            
+   
         }
     
         libEditor.attachInputs(this);
