@@ -17,15 +17,39 @@ export const eventHandlers = new WeakMap();
 let translations = {}; // Stocke les traductions chargées
 
 export async function loadTranslations(appendTo) {
-    const lang = appendTo._hass?.language || "en"; // Langue HA, ou "en" par défaut
+  const langRaw = appendTo?._hass?.language || "en";
+
+  // Normalisation :
+  // FR → fr
+  // fr-FR → fr
+  // EN-us → en
+  const lang = langRaw.toLowerCase().split("-")[0];
+
+  async function tryImport(l) {
+    const url = new URL(`./lang-${l}.js`, import.meta.url).toString();
+    return import(url);
+  }
+
+  try {
+    const response = await tryImport(lang);
+    translations = response.default || {};
+  } catch (error) {
+    console.warn(
+      `[Venus-OS-Dashboard] Failed to load lang-${lang}.js, fallback to en`,
+      error
+    );
+
     try {
-        const response = await import(`./lang-${lang}.js`);
-        translations = response.default;
-    } catch (error) {
-        console.error("Erreur de chargement de la langue :", error);
-        const response = await import(`./lang-en.js`);
-        translations = {};
+      const response = await tryImport("en");
+      translations = response.default || {};
+    } catch (e2) {
+      console.error(
+        "[Venus-OS-Dashboard] Failed to load lang-en.js too",
+        e2
+      );
+      translations = {};
     }
+  }
 }
 
 export function t(func, key) {
@@ -297,18 +321,8 @@ export function subtabRender(box, config, hass, appendTo) {
         <!-- ENTITE 1 et 2-->
         <ha-expansion-panel outlined id="subPanel_entities" header="${t("subtabRender", "sensor_title")}">
             <div class="col inner">
-                <ha-entity-picker
-                    label="${t("subtabRender", "entity_choice")}"
-                    id="device_sensor"
-                    data-path="devices.${box}.entity"
-                >
-                </ha-entity-picker>
-                <ha-entity-picker
-                    label="${t("subtabRender", "entity2_choice")}"
-                    id="device_sensor2"
-                    data-path="devices.${box}.entity2"
-                >
-                </ha-entity-picker>
+                <ha-form class="cell" id="device_sensor_form"></ha-form>
+				<ha-form class="cell" id="device_sensor2_form"></ha-form>
     
                 <!-- SWITCHS GRAPH ET GAUGE -->
                 <div class="row">
@@ -333,36 +347,12 @@ export function subtabRender(box, config, hass, appendTo) {
         <!-- HEADER ET FOOTER 1 -->
         <ha-expansion-panel outlined id="subPanel_entities2" header="${t("subtabRender", "header_footer_title")}">
             <div class="col inner">
-                <div class="row">
-                    <ha-entity-picker
-                        label="${t("subtabRender", "entity_header")}"
-                        id="header_sensor"
-                        data-path="devices.${box}.headerEntity"
-                    >
-                    </ha-entity-picker>
-                    <ha-entity-picker
-                        label="${t("subtabRender", "entity_footer")}"
-                        id="footer1_sensor"
-                        data-path="devices.${box}.footerEntity1"
-                    >
-                    </ha-entity-picker>
-                </div>
-                
+				<ha-form class="cell" id="header_sensor_form"></ha-form>
+				<ha-form class="cell" id="footer1_sensor_form"></ha-form>
+				           
                 <!-- FOOTER 2 ET 3 -->
-                <div class="row">
-                    <ha-entity-picker
-                        label="${t("subtabRender", "entity2_footer")}"
-                        id="footer2_sensor"
-                        data-path="devices.${box}.footerEntity2"
-                    >
-                    </ha-entity-picker>
-                    <ha-entity-picker
-                        label="${t("subtabRender", "entity3_footer")}"
-                        id="footer3_sensor"
-                        data-path="devices.${box}.footerEntity3"
-                    >
-                    </ha-entity-picker>
-                </div>
+				<ha-form class="cell" id="footer2_sensor_form"></ha-form>
+				<ha-form class="cell" id="footer3_sensor_form"></ha-form>
             </div>
         </ha-expansion-panel>
         
@@ -442,14 +432,8 @@ export function subtabRender(box, config, hass, appendTo) {
             
     const iconPicker = subTabContent.querySelector('#device_icon');
     const nameField = subTabContent.querySelector('#device_name');
-    const entityPicker = subTabContent.querySelector('#device_sensor');
-    const entity2Picker = subTabContent.querySelector('#device_sensor2');
     const graphSwitch = subTabContent.querySelector('#graph_switch');
     const gaugeSwitch = subTabContent.querySelector('#gauge_switch');
-    const headerEntity = subTabContent.querySelector('#header_sensor');
-    const footerEntity1 = subTabContent.querySelector('#footer1_sensor');
-    const footerEntity2 = subTabContent.querySelector('#footer2_sensor');
-    const footerEntity3 = subTabContent.querySelector('#footer3_sensor');
     const anchorLeft = subTabContent.querySelector('#anchor_left');
 	const anchorTop = subTabContent.querySelector('#anchor_top');
 	const anchorbottom = subTabContent.querySelector('#anchor_bottom');
@@ -464,24 +448,135 @@ export function subtabRender(box, config, hass, appendTo) {
     // Après avoir inséré le contenu, configure les valeurs pour ha-icon-picker et ha-entity-picker
     nameField.value = config?.devices?.[box]?.name ?? "";
     iconPicker.value = config?.devices?.[box]?.icon ?? ""; 
-    entityPicker.value = config?.devices?.[box]?.entity ?? "";
-    entity2Picker.value = config?.devices?.[box]?.entity2 ?? "";
-    headerEntity.value = config?.devices?.[box]?.headerEntity ?? "";
-    footerEntity1.value = config?.devices?.[box]?.footerEntity1 ?? "";
-    footerEntity2.value = config?.devices?.[box]?.footerEntity2 ?? "";
-    footerEntity3.value = config?.devices?.[box]?.footerEntity3 ?? "";
     
     iconPicker.hass = hass; // Passe l'objet directement ici
-    entityPicker.hass = hass; // Passe l'objet directement ici
-    entity2Picker.hass = hass; // Passe l'objet directement ici
-    headerEntity.hass = hass; // Passe l'objet directement ici  
-    footerEntity1.hass = hass; // Passe l'objet directement ici
-    footerEntity2.hass = hass; // Passe l'objet directement ici
-    footerEntity3.hass = hass; // Passe l'objet directement ici
            
-    if (config?.devices?.[box]?.graph === true) graphSwitch.setAttribute('checked', '');
+    const basePath = `devices.${box}`;
+
+	// --- device_sensor_form (entity principale)
+	const formEntity1 = subTabContent.querySelector('#device_sensor_form');
+	formEntity1.hass = hass;
+	formEntity1.computeLabel = (schema) => {
+	  return t("subtabRender", "entity_choice");
+	};
+	formEntity1.schema = [
+	  {
+		name: "entity",
+		required: false,
+		selector: { entity: {} },
+	  },
+	];
+	formEntity1.data = { entity: config?.devices?.[box]?.entity ?? "" };
+	formEntity1.addEventListener("value-changed", (e) => {
+	  const v = e?.detail?.value || {};
+	  appendTo._config = updateConfigRecursively(appendTo._config, `${basePath}.entity`, v.entity || null, true);
+	  notifyConfigChange(appendTo);
+	});
+
+	// --- device_sensor2_form (entity2)
+	const formEntity2 = subTabContent.querySelector('#device_sensor2_form');
+	formEntity2.hass = hass;
+	formEntity2.computeLabel = (schema) => {
+	  return t("subtabRender", "entity2_choice");
+	};
+	formEntity2.schema = [
+	  {
+		name: "entity2",
+		required: false,
+		selector: { entity: {} },
+	  },
+	];
+	formEntity2.data = { entity2: config?.devices?.[box]?.entity2 ?? "" };
+	formEntity2.addEventListener("value-changed", (e) => {
+	  const v = e?.detail?.value || {};
+	  appendTo._config = updateConfigRecursively(appendTo._config, `${basePath}.entity2`, v.entity2 || null, true);
+	  notifyConfigChange(appendTo);
+	});
+
+	// --- header_sensor_form
+	const formHeader = subTabContent.querySelector('#header_sensor_form');
+	formHeader.hass = hass;
+	formHeader.computeLabel = (schema) => {
+	  return t("subtabRender", "entity_header");
+	};
+	formHeader.schema = [
+	  { 
+		name: "headerEntity", 
+		required: false, 
+		selector: { entity: {} } 
+	  },
+	];
+	formHeader.data = { headerEntity: config?.devices?.[box]?.headerEntity ?? "" };
+	formHeader.addEventListener("value-changed", (e) => {
+	  const v = e?.detail?.value || {};
+	  appendTo._config = updateConfigRecursively(appendTo._config, `${basePath}.headerEntity`, v.headerEntity || null, true);
+	  notifyConfigChange(appendTo);
+	});
+
+	// --- footer1_sensor_form
+	const formFooter1 = subTabContent.querySelector('#footer1_sensor_form');
+	formFooter1.hass = hass;
+	formFooter1.computeLabel = (schema) => {
+	  return t("subtabRender", "entity_footer");
+	};
+	formFooter1.schema = [
+	  { 
+	    name: "footerEntity1", 
+	    required: false, 
+	    selector: { entity: {} } 
+	  },
+	];
+	formFooter1.data = { footerEntity1: config?.devices?.[box]?.footerEntity1 ?? "" };
+	formFooter1.addEventListener("value-changed", (e) => {
+	  const v = e?.detail?.value || {};
+	  appendTo._config = updateConfigRecursively(appendTo._config, `${basePath}.footerEntity1`, v.footerEntity1 || null, true);
+	  notifyConfigChange(appendTo);
+	});
+
+	// --- footer2_sensor_form
+	const formFooter2 = subTabContent.querySelector('#footer2_sensor_form');
+	formFooter2.hass = hass;
+	formFooter2.computeLabel = (schema) => {
+	  return t("subtabRender", "entity2_footer");
+	};
+	formFooter2.schema = [
+	  { 
+	    name: "footerEntity2", 
+		required: false, 
+		selector: { entity: {} } 
+	  },
+	];
+	formFooter2.data = { footerEntity2: config?.devices?.[box]?.footerEntity2 ?? "" };
+	formFooter2.addEventListener("value-changed", (e) => {
+	  const v = e?.detail?.value || {};
+	  appendTo._config = updateConfigRecursively(appendTo._config, `${basePath}.footerEntity2`, v.footerEntity2 || null, true);
+	  notifyConfigChange(appendTo);
+	});
+
+	// --- footer3_sensor_form
+	const formFooter3 = subTabContent.querySelector('#footer3_sensor_form');
+	formFooter3.hass = hass;
+	formFooter3.computeLabel = (schema) => {
+	  return t("subtabRender", "entity3_footer");
+	};
+	formFooter3.schema = [
+	  { 
+	    name: "footerEntity3", 
+		required: false, 
+		selector: { entity: {} } 
+	  },
+	];
+	formFooter3.data = { footerEntity3: config?.devices?.[box]?.footerEntity3 ?? "" };
+	formFooter3.addEventListener("value-changed", (e) => {
+	  const v = e?.detail?.value || {};
+	  appendTo._config = updateConfigRecursively(appendTo._config, `${basePath}.footerEntity3`, v.footerEntity3 || null, true);
+	  notifyConfigChange(appendTo);
+	});
+	
+	if (config?.devices?.[box]?.graph === true) graphSwitch.setAttribute('checked', '');
     
-    const entity = hass.states?.[entityPicker.value];
+    const selectedEntityId = config?.devices?.[box]?.entity ?? "";
+	const entity = hass.states?.[selectedEntityId];
     const unit = entity?.attributes?.unit_of_measurement;
 
     if(unit !== '%' ) {
@@ -561,19 +656,10 @@ export function addLink(index, box, hass, thisAllAnchors, OtherAllAnchors, appen
         </div>
         <div id="link-container" class="inner">
             <div class="col">
-                <div class="row">
-                    <ha-combo-box class="cell" 
-                        label="${t("addLink", "start")}" 
-                        id="start_link_${index}"
-                        data-path="devices.${box}.link.${index}.start" 
-                    ></ha-combo-box>
-                    
-                    <ha-combo-box class="cell" 
-                        label="${t("addLink", "end")}" 
-                        id="end_link_${index}"
-                        data-path="devices.${box}.link.${index}.end" 
-                    ></ha-combo-box>
-                </div>
+                <div class="row link-row">
+				  <ha-form class="cell" id="link_form_start_${index}"></ha-form>
+				  <ha-form class="cell" id="link_form_end_${index}"></ha-form>
+				</div>
                 
                 <div class="row">
                     <ha-entity-picker class="cell"
@@ -595,14 +681,47 @@ export function addLink(index, box, hass, thisAllAnchors, OtherAllAnchors, appen
         </div>
     `;
     
-    const startLink = panel.querySelector(`#start_link_${index}`);
-    startLink.items = thisAllAnchors.map(anchor => ({ label: anchor, value: anchor })); // Convertit en objets
-    startLink.value = appendTo._config.devices?.[box]?.link?.[index]?.start ?? "";
-    
-    const endLink = panel.querySelector(`#end_link_${index}`);
-    endLink.items = OtherAllAnchors.map(anchor => ({ label: anchor, value: anchor }));
-    endLink.value = appendTo._config.devices?.[box]?.link?.[index]?.end ?? "";
-    
+	const basePath = `devices.${box}.link.${index}`;
+
+	const startVal = appendTo._config.devices?.[box]?.link?.[index]?.start ?? "";
+	const endVal   = appendTo._config.devices?.[box]?.link?.[index]?.end ?? "";
+
+	const formStart = panel.querySelector(`#link_form_start_${index}`);
+	formStart.hass = hass;
+	formStart.schema = [
+	  {
+		name: "start",
+		required: false,
+		selector: { select: { options: thisAllAnchors, mode: "dropdown" } },
+	  },
+	];
+	formStart.data = { start: startVal };
+	formStart.addEventListener("value-changed", (e) => {
+	  const v = e?.detail?.value || {};
+	  if (v.start !== undefined) {
+		appendTo._config = updateConfigRecursively(appendTo._config, `${basePath}.start`, v.start);
+		notifyConfigChange(appendTo);
+	  }
+	});
+
+	const formEnd = panel.querySelector(`#link_form_end_${index}`);
+	formEnd.hass = hass;
+	formEnd.schema = [
+	  {
+		name: "end",
+		required: false,
+		selector: { select: { options: OtherAllAnchors, mode: "dropdown" } },
+	  },
+	];
+	formEnd.data = { end: endVal };
+	formEnd.addEventListener("value-changed", (e) => {
+	  const v = e?.detail?.value || {};
+	  if (v.end !== undefined) {
+		appendTo._config = updateConfigRecursively(appendTo._config, `${basePath}.end`, v.end);
+		notifyConfigChange(appendTo);
+	  }
+	});
+
     const entityLink = panel.querySelector(`#entity_link_${index}`);
     entityLink.hass = hass;
     entityLink.value = appendTo._config.devices[box]?.link?.[index]?.entity ?? "";
@@ -640,7 +759,7 @@ export function attachLinkInputs(appendTo) {
         // Créer un nouveau gestionnaire d'événements
         const handleChange = (e) => {
             const key = comboBox.dataset.path;
-            let value = e.detail.value;
+            let value = e?.detail?.value ?? e?.target?.value;
             
             if (!value) {
                 value = null; // Déclenche la suppression de la clé dans le YAML
