@@ -16,43 +16,27 @@ class venusOsDashBoardEditor extends HTMLElement {
             
             this.shadowRoot.innerHTML = `
               <style>
-                sl-tab-group {
-                  width: 100%;
-                  --sl-tab-border-color: var(--divider-color, #ccc);
-                }
-                sl-tab-panel {
-                  padding: 1em;
-                }
-              </style>
+				ha-tab-group {
+				  width: 100%;
+				}
+				ha-tab-group-panel {
+				  padding: 1em;
+				}
+			  </style>
             
-              <sl-tab-group id="tab-group">
-                <sl-tab slot="nav" panel="conf" data-tab="0"" active>Conf.</sl-tab>
-                <sl-tab slot="nav" panel="conf" data-tab="1">Col. 1</sl-tab>
-                <sl-tab slot="nav" panel="conf" data-tab="2">Col. 2</sl-tab>
-                <sl-tab slot="nav" panel="conf" data-tab="3">Col. 3</sl-tab>
-            
-                <sl-tab-panel id="sl-tab-content" name="conf">
-                  <div id="tab-content" class="content"></div>
-                </sl-tab-panel>
-              </sl-tab-group>
+              <ha-tab-group id="tab-group">
+				<ha-tab-group-tab slot="nav" panel="main" data-tab="0" active>Conf.</ha-tab-group-tab>
+				<ha-tab-group-tab slot="nav" panel="main" data-tab="1">Col. 1</ha-tab-group-tab>
+				<ha-tab-group-tab slot="nav" panel="main" data-tab="2">Col. 2</ha-tab-group-tab>
+				<ha-tab-group-tab slot="nav" panel="main" data-tab="3">Col. 3</ha-tab-group-tab>
+
+				<ha-tab-group-panel id="sl-tab-content" name="main">
+				  <div id="tab-content" class="content"></div>
+				</ha-tab-group-panel>
+			  </ha-tab-group>
             `;
             
             const tabGroup = this.shadowRoot.querySelector('#tab-group');
-            
-            /*tabGroup.addEventListener('sl-tab-show', (event) => {
-                
-              const panelName = event.detail.name; // "conf", "col1", etc.
-              const tabIndexMap = {
-                conf: 0,
-                col1: 1,
-                col2: 2,
-                col3: 3,
-              };
-              this._currentTab = tabIndexMap[panelName] ?? 0;
-              this.renderTabContent();
-            });*/
-            
-            
             
             const style = document.createElement('style');
             style.textContent = css();
