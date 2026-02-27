@@ -39,6 +39,7 @@ export default {
     start: "Inizio",
     end: "Fine",
     entity_picker: "Seleziona entità",
-    reverse: "inverso"
+    reverse: "inverso",
+	threshold: "Soglia"
   }
 };
