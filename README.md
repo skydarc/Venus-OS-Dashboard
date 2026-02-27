@@ -27,7 +27,21 @@ Venus OS Dashboard is a card that replicates the look and feel of the Venus OS G
 
 ### HACS
 
+[![HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=skydarc&repository=Venus-OS-Dashboard&category=plugin)
 
+1. Make sure [HACS](https://hacs.xyz/) is installed in your Home Assistant instance
+2. Add this repository as a custom repository in HACS:
+   - Go to HACS
+   - Click the three dots in the top right corner
+   - Select "Custom repositories"
+   - Add the URL of this repository
+   - Select "dashboard" as the category
+3. Click "Install" in HACS
+4. Restart Home Assistant
+
+And voilà! Venus OS Dashboard should now be available in the Lovelace card picker menu.
+
+Enjoy! 🎉
 
 ### Manual Installation
 
