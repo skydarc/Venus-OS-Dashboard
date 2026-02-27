@@ -677,6 +677,16 @@ export function addLink(index, box, hass, thisAllAnchors, OtherAllAnchors, appen
                         ></ha-switch>
                     </div>
                 </div>
+				<div class="row">
+                    <ha-textfield class="cell"
+                        id="threshold_link_${index}"
+                        label="${t("addLink", "threshold")}"
+                        data-path="devices.${box}.link.${index}.animationThreshold"
+                        type="number"
+                        min="0"
+                        step="1"
+                    ></ha-textfield>
+                </div>
             </div>
         </div>
     `;
@@ -729,7 +739,17 @@ export function addLink(index, box, hass, thisAllAnchors, OtherAllAnchors, appen
     const invLink = panel.querySelector(`#inv_link_${index}`);
     if (appendTo._config.devices[box]?.link?.[index]?.inv === true) invLink.setAttribute('checked', '');
     
-    const path = `devices.${box}.link.${index}`;
+    const thresholdField = panel.querySelector(`#threshold_link_${index}`);
+	const thrVal = appendTo._config.devices?.[box]?.link?.[index]?.animationThreshold;
+	
+	// si défini => affiche, sinon laisse vide (vide => suppression YAML via attachLinkInputs)
+    if (thrVal !== undefined && thrVal !== null) {
+        thresholdField.value = thrVal;
+    } else {
+        thresholdField.value = "";
+    }
+	
+	const path = `devices.${box}.link.${index}`;
         
     const deleteButton = panel.querySelector('ha-icon-button');
     deleteButton.addEventListener('click', () => {
