@@ -39,6 +39,7 @@ export default {
     start: "Start",
     end: "Ende",
     entity_picker: "Entität wählen",
-    reverse: "Umkehren"
+    reverse: "Umkehren",
+	threshold: "Türschwelle"
   }
 };
