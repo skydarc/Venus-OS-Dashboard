@@ -1,10 +1,9 @@
 
 # 🗲 - Venus OS Dashboard - 🗲
 
-![Overview](https://github.com/user-attachments/assets/5c450676-acba-4c8b-a558-dc36ff85c208)
+![Overview](assets/preview1.png)
 
-<img src="https://github.com/user-attachments/assets/7148bde1-ef7e-4869-b67a-e442fc76ba14" width="300">
-<img src="https://github.com/user-attachments/assets/16c48420-e28a-472e-b3df-fe50922d1e70" width="300">
+<img src="assets/preview2.png" width="300">
 
 ## **What is Venus OS Dashboard ?**
 
@@ -28,7 +27,7 @@ Venus OS Dashboard is a card that replicates the look and feel of the Venus OS G
 
 ### HACS
 
-*Not available yet (coming soon).*
+
 
 ### Manual Installation
 
