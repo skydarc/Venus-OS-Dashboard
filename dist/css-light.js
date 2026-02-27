@@ -254,21 +254,6 @@ export function cssDataLight(user) {
 			width: 30%;
 			gap: 5%;
 		}
-		
-		@keyframes flowDrops { to { stroke-dashoffset: -56; } }
-		@keyframes flowTail  { to { stroke-dashoffset: -56; } }
-
-		.flow-drops {
-		  animation: flowDrops 1.2s linear infinite;
-		  
-		  stroke: rgba(0,0,255,0.4) !important;
-
-		}
-		
-		.flow-drops-tail {
-		  animation: flowTail 1.2s linear infinite;
-
-		}
   `
     return css;
 
