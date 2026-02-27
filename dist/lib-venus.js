@@ -959,32 +959,60 @@ function animateBallsAlongPath(anchorId1, path, circles, appendTo) {
 /* verifie la valeur de l'entité et change le sens si */
 /* necessaire                                         */
 /******************************************************/
-export function checkForReverse(devices, hass) {
-    
-    for (const boxId in devices) {
-            const device = devices[boxId];
-            
-            // Parcours des liens numérotés
-            const links = device.link;
-            
-            if(links !== "nolink") {
-                for (const linkId in links) {
-                    
-                    const link = links[linkId];
-                    
-                    const stateLinkEnt = hass.states[link.entity];
-                    const valueLinkEnt = stateLinkEnt ? stateLinkEnt.state : '';
-                    
-                    const pathControl = pathControls.get(`${boxId}_${link.start}`);
-                    
-                    if (pathControl && typeof pathControl.reverse === "function") {
-                        if(valueLinkEnt < -0.5) pathControls.get(`${boxId}_${link.start}`).reverse(-1); 
-                        else if(valueLinkEnt > 0.5) pathControls.get(`${boxId}_${link.start}`).reverse(1); 
-                        else pathControls.get(`${boxId}_${link.start}`).reverse(0); 
-                    } 
-                }
-        	}
-        }
+export function checkForReverse(config, hass) {
+	
+  const devices = config?.devices || {};
+
+  for (const boxId in devices) {
+    const device = devices[boxId];
+    const links = device.link;
+
+    if (!links || links === "nolink") continue;
+
+    for (const linkId in links) {
+      const link = links[linkId];
+      if (!link || link === "nolink") continue;
+
+      const key = `${boxId}_${link.start}`;
+      const pathControl = pathControls.get(key);
+      if (!pathControl || typeof pathControl.reverse !== "function") continue;
+
+      const stateObj = hass.states?.[link.entity];
+      const raw = stateObj ? stateObj.state : "";
+      const v = Number.parseFloat(raw);
+
+      if (!Number.isFinite(v)) {
+        pathControl.reverse(0);
+        continue;
+      }
+
+      // ---- THRESHOLD LOGIC ----
+
+      // 1️⃣ threshold spécifique lien
+      const thresholdRaw = link.animationThreshold;
+	  const threshold = Number(thresholdRaw);
+	  
+      // Si aucun threshold défini → comportement ancien
+      if (threshold === null || !Number.isFinite(threshold)) {
+        if (v < 0) pathControl.reverse(-1);
+        else if (v > 0) pathControl.reverse(1);
+        else pathControl.reverse(0);
+        continue;
+      }
+
+      // ---- Si threshold défini ----
+
+      if (Math.abs(v) < threshold) {
+        pathControl.reverse(0);
+      } else if (v < 0) {
+        pathControl.reverse(-1);
+      } else {
+        pathControl.reverse(1);
+      }
+	  
+	  
+    }
+  }
 }
 
 /******************************************************/
