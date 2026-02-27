@@ -131,7 +131,7 @@ class venusOsDashboardCard extends HTMLElement {
     libVenus.checkReSize(devices, venusOsDashboardCard.isDark, this.content);
 
     // verification des valeurs pour inversion de l'anim path
-    libVenus.checkForReverse(devices, hass);
+    libVenus.checkForReverse(this.config, hass);
 
     // Lancement initial de startPeriodicTask
     if (!this.periodicTaskStarted) {
