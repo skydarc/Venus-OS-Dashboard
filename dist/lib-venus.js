@@ -833,24 +833,35 @@ function creatLine(anchorId1, anchorId2, direction_init, isDarkTheme, appendTo) 
 	const spacingPx = 45;                    // distance entre balles
 	const ballCount = Math.max(1, Math.floor(pathLength / spacingPx));
 
-	// Rayon des balles
-	const ballRadius = 4;
-
 	// Créer les cercles
-	const circles = [];
+	const drops = [];
 	for (let i = 0; i < ballCount; i++) {
-	  const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-	  c.setAttribute("r", String(ballRadius));
-	  c.setAttribute("class", "ball");
-	  c.setAttribute("fill", isDarkTheme ? "url(#gradientDark)" : "url(#gradientLight)");
-	  circContainer.appendChild(c);
-	  circles.push(c);
+
+	  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+	  g.setAttribute("class", "drop");
+	  circContainer.appendChild(g);
+
+	  // halo (plus grand + plus transparent)
+	  const halo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+	  halo.setAttribute("r", "6");
+	  halo.setAttribute("class", "ball ball-halo");
+	  halo.setAttribute("fill", isDarkTheme ? "rgba(255,255,255,0.25)" : "rgba(0,0,255,0.25)");
+	  g.appendChild(halo);
+
+	  // core (gradient)
+	  const core = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+	  core.setAttribute("r", "4");
+	  core.setAttribute("class", "ball ball-core");
+	  core.setAttribute("fill", isDarkTheme ? "url(#gradientDark)" : "url(#gradientLight)");
+	  g.appendChild(core);
+
+	  drops.push(g);
 	}
 
 	// Stocker direction + lancer animation
 	directionControls.set(anchorId1, direction_init);
 
-	const controls = animateBallsAlongPath(anchorId1, path, circles, appendTo);
+	const controls = animateBallsAlongPath(anchorId1, path, drops, appendTo);
 	pathControls.set(anchorId1, controls);
 }
 
@@ -894,7 +905,7 @@ function getAnchorCoordinates(anchorId, appendTo) {
 /* circle, le path pour le deplacement du circle, et le circle à  */
 /* deplacer                                                       */
 /******************************************************************/
-function animateBallsAlongPath(anchorId1, path, circles, appendTo) {
+function animateBallsAlongPath(anchorId1, path, drops, appendTo) {
   let direction = directionControls.get(anchorId1) ?? 1;
 
   const pathLength = path.getTotalLength();
@@ -916,24 +927,26 @@ function animateBallsAlongPath(anchorId1, path, circles, appendTo) {
 
     // direction
     const dir = direction;
-    const n = circles.length;
+    const n = drops.length;
 
-    for (let i = 0; i < n; i++) {
-      let p = base + i / n;   // déphasage => plusieurs balles
-      p = p % 1;
+	for (let i = 0; i < n; i++) {
+	  let p = base + i / n;
+	  p = p % 1;
 
-      if (dir === -1) p = 1 - p;
-      if (dir === 0) {
-        circles[i].style.display = "none";
-        continue;
-      } else {
-        circles[i].style.display = "";
-      }
+	  if (dir === -1) p = 1 - p;
 
-      const pt = path.getPointAtLength(p * pathLength);
-      circles[i].setAttribute("cx", pt.x);
-      circles[i].setAttribute("cy", pt.y);
-    }
+	  if (dir === 0) {
+		drops[i].style.display = "none";
+		continue;
+	  } else {
+		drops[i].style.display = "";
+	  }
+
+	  const pt = path.getPointAtLength(p * pathLength);
+
+	  // on déplace le groupe => halo + core restent superposés
+	  drops[i].setAttribute("transform", `translate(${pt.x},${pt.y})`);
+	}
 
     rafId = requestAnimationFrame(frame);
   }
@@ -1182,7 +1195,6 @@ export const getFirstEntityName = (entities) => {
   const names = getEntityNames(entities);
   return names.length > 0 ? names[0] : "";
 };
-
 
 export function getDefaultConfig(hass) {
       
