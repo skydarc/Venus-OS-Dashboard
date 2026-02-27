@@ -38,6 +38,7 @@ export default {
     start: "Start",
     end: "End",
     entity_picker: "Select entity",
-    reverse: "reverse"
+    reverse: "reverse",
+	threshold: "Threshold"
   }
 };
