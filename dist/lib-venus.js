@@ -23,7 +23,21 @@ export function baseRender(config, appendTo) {
     appendTo.innerHTML = `
 	    <div id="dashboard" class="dashboard">
     		<svg id="svg_container" class="line" viewBox="0 0 1000 600" width="100%" height="100%">
+    			<defs>
+    				<filter id="blurEffect">
+    					<feGaussianBlur in="SourceGraphic" stdDeviation="1"/> <!-- Ajuste stdDeviation pour plus ou moins de flou -->
+    				</filter>
+    				<radialGradient id="gradientDark" cx="50%" cy="50%" r="50%">
+    					<stop offset="0%" stop-color="#ffffff" stop-opacity="1"></stop>
+    					<stop offset="90%" stop-color="#ffffff" stop-opacity="0"></stop>
+    				</radialGradient>
+    				<radialGradient id="gradientLight" cx="50%" cy="50%" r="50%">
+    					<stop offset="0%" stop-color="#000000" stop-opacity="1"></stop>
+    					<stop offset="90%" stop-color="#000000" stop-opacity="0"></stop>
+    				</radialGradient>
+    			</defs>
         		<g id="path_container" class="lines"></g>
+    			<g id="circ_container" class="balls"></g>
     		</svg>
             <div id="column-1" class="column column-1"></div>
             <div id="column-2" class="column column-2"></div>
@@ -451,7 +465,8 @@ export function checkReSize(devices, isDarkTheme, appendTo) {
         
         // conteneur des path et des circles
         const pathContainer = appendTo.querySelector(`#dashboard > #svg_container > #path_container`);
-            
+        const circContainer = appendTo.querySelector(`#dashboard > #svg_container > #circ_container`);
+		
         // si le DOM est fini...
         const checkReady = () => {
             const dashboard = appendTo.querySelector("#dashboard");
@@ -467,6 +482,7 @@ export function checkReSize(devices, isDarkTheme, appendTo) {
                 if (mustRedrawLine) { // suite a une mise a jour du yaml
                         
                     pathContainer.innerHTML = "";
+					if (circContainer) circContainer.innerHTML = "";
                     addLine(devices, isDarkTheme, appendTo);
                         
                 } else if(hasInert && !editorOpen) { // premiere boucle a l'ouverture de l'editeur
@@ -474,6 +490,7 @@ export function checkReSize(devices, isDarkTheme, appendTo) {
                     editorOpen = true;
                         
                     pathContainer.innerHTML = "";
+					if (circContainer) circContainer.innerHTML = "";
                     addLine(devices, isDarkTheme, appendTo);
                         
                 } else if (hasInert && editorOpen) { // boucles suivantes apres premiere ouverture de l'editeur... plus de mise à jour
@@ -483,11 +500,13 @@ export function checkReSize(devices, isDarkTheme, appendTo) {
                     editorOpen = false;
 
                     pathContainer.innerHTML = "";
+					if (circContainer) circContainer.innerHTML = "";
                     addLine(devices, isDarkTheme, appendTo);
                         
                 } else {
 
                     pathContainer.innerHTML = "";
+					if (circContainer) circContainer.innerHTML = "";
                     addLine(devices, isDarkTheme, appendTo);
                         
                 }
@@ -627,7 +646,13 @@ function roundedOrthogonalPath(points, r0 = 18) {
 function creatLine(anchorId1, anchorId2, direction_init, isDarkTheme, appendTo) {
     
     const pathContainer = appendTo.querySelector(`#dashboard > #svg_container > #path_container`);
+	const circContainer = appendTo.querySelector(`#dashboard > #svg_container > #circ_container`);
 	
+	if (!circContainer) {
+	  console.error("circContainer introuvable.");
+	  return;
+	}
+
 	if (!pathContainer) {
 		console.error("pathContainer container introuvable.");
 		return;
@@ -794,61 +819,38 @@ function creatLine(anchorId1, anchorId2, direction_init, isDarkTheme, appendTo) 
     
     path.setAttribute("fill", "none");
 	path.setAttribute("stroke-width", "2");
-	//path.setAttribute("filter", "url(#blurEffect)"); // Utilisation du dégradé
-	
+
 	// Ligne principale
-	path.setAttribute("stroke", "var(--line-color)");
-	path.setAttribute("stroke-linecap", "round");
-	path.setAttribute("stroke-linejoin", "round");
-	
 	path.classList.add("link-path");
-
-	// === Path animé "gouttes" ===
-	const flow = document.createElementNS("http://www.w3.org/2000/svg", "path");
-	flow.setAttribute("d", pathData);
-	flow.setAttribute("fill", "none");
-	flow.setAttribute("stroke-width", "8");
-	flow.setAttribute("stroke-linecap", "round");
-	flow.setAttribute("stroke-linejoin", "round");
-	//flow.setAttribute("filter", "url(#blurEffect)"); // Utilisation du dégradé
-
-	// couleur douce type Victron
-	flow.setAttribute("stroke", "rgba(255,255,255,0.4)");
-
-	// 1px visible + 55px vide => plusieurs gouttes visibles dès t=0
-	const dropLen = 1;
-	const gapLen  = 55;
-
-	flow.setAttribute("stroke-dasharray", `${dropLen} ${gapLen}`);
-	flow.setAttribute("stroke-dashoffset", "0");
-	flow.classList.add("flow-drops");
-	
-	// === couche "tail" (trait + dégradé) ===
-	const tail = document.createElementNS("http://www.w3.org/2000/svg", "path");
-	tail.setAttribute("d", pathData);
-	tail.setAttribute("fill", "none");
-	tail.setAttribute("stroke-width", "2");           // largeur = ligne
-	tail.setAttribute("stroke-linecap", "round");
-	tail.setAttribute("stroke-linejoin", "round");
-
-	// Dégradé blanc (dans le sens du path)
-	tail.setAttribute("stroke", "rgba(255,255,255,0.9)");
-
-	// Dash plus long pour faire une "trainée"
-	const tailLen = 1;
-	const tailGap = 55;
-	tail.setAttribute("stroke-dasharray", `${tailLen} ${tailGap}`);
-	tail.setAttribute("stroke-dashoffset", "0");
-	tail.classList.add("flow-drops-tail");
 
 	// Ajout au SVG
 	pathContainer.appendChild(path);
-	pathContainer.appendChild(tail);
-	pathContainer.appendChild(flow);
 
-	// Gestion direction
+	// ---- Multi balls ----
+	const pathLength = path.getTotalLength();
+
+	// Ajuste ces 2 valeurs à ton goût
+	const spacingPx = 45;                    // distance entre balles
+	const ballCount = Math.max(1, Math.floor(pathLength / spacingPx));
+
+	// Rayon des balles
+	const ballRadius = 4;
+
+	// Créer les cercles
+	const circles = [];
+	for (let i = 0; i < ballCount; i++) {
+	  const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+	  c.setAttribute("r", String(ballRadius));
+	  c.setAttribute("class", "ball");
+	  c.setAttribute("fill", isDarkTheme ? "url(#gradientDark)" : "url(#gradientLight)");
+	  circContainer.appendChild(c);
+	  circles.push(c);
+	}
+
+	// Stocker direction + lancer animation
 	directionControls.set(anchorId1, direction_init);
-	const controls = animateFlowAlongPath(anchorId1, [tail, flow]);
+
+	const controls = animateBallsAlongPath(anchorId1, path, circles, appendTo);
 	pathControls.set(anchorId1, controls);
 }
 
@@ -892,35 +894,63 @@ function getAnchorCoordinates(anchorId, appendTo) {
 /* circle, le path pour le deplacement du circle, et le circle à  */
 /* deplacer                                                       */
 /******************************************************************/
-function animateFlowAlongPath(anchorId1, flowPath) {
-  const paths = Array.isArray(flowPath) ? flowPath : [flowPath];
-
+function animateBallsAlongPath(anchorId1, path, circles, appendTo) {
   let direction = directionControls.get(anchorId1) ?? 1;
 
-  function applyDir() {
-    const isStopped = (direction === 0);
-    const animDir = direction === -1 ? "reverse" : "normal";
-    const play = isStopped ? "paused" : "running";
-    const opacity = isStopped ? "0" : "1";
+  const pathLength = path.getTotalLength();
 
-    for (const p of paths) {
-      if (!p) continue; // sécurité si un path est null/undefined
-      p.style.animationDirection = animDir;
-      p.style.animationPlayState = play;
-      p.style.opacity = opacity;
+  // vitesse : adapte à la largeur comme l’ancien fork (simple)
+  const dashboard = appendTo.querySelector("#dashboard");
+  const w = dashboard?.getBoundingClientRect().width ?? 1000;
+
+  // plus w est grand, plus ça va vite (à ajuster)
+  const speed = (w / 1000) * 0.8; // facteur
+  const duration = Math.max(900, (pathLength / speed) * 16); // ms
+
+  let start = performance.now();
+  let rafId = null;
+
+  function frame(now) {
+    const elapsed = now - start;
+    let base = (elapsed % duration) / duration; // 0..1
+
+    // direction
+    const dir = direction;
+    const n = circles.length;
+
+    for (let i = 0; i < n; i++) {
+      let p = base + i / n;   // déphasage => plusieurs balles
+      p = p % 1;
+
+      if (dir === -1) p = 1 - p;
+      if (dir === 0) {
+        circles[i].style.display = "none";
+        continue;
+      } else {
+        circles[i].style.display = "";
+      }
+
+      const pt = path.getPointAtLength(p * pathLength);
+      circles[i].setAttribute("cx", pt.x);
+      circles[i].setAttribute("cy", pt.y);
     }
+
+    rafId = requestAnimationFrame(frame);
   }
 
-  function reverseDirection(cmd) {
-    const directionInit = directionControls.get(anchorId1) ?? 1;
-    direction = directionInit * cmd; // -1, 0, +1
-    applyDir();
-  }
+  rafId = requestAnimationFrame(frame);
 
-  applyDir();
+  function reverse(cmd) {
+    const init = directionControls.get(anchorId1) ?? 1;
+    direction = init * cmd; // -1,0,+1
+  }
 
   return {
-    reverse: reverseDirection,
+    reverse,
+    stop: () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+    },
   };
 }
 
