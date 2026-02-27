@@ -38,6 +38,7 @@ export default {
     start: "Départ",
     end: "Arrivée",
     entity_picker: "Choisir une entité",
-    reverse: "inversion"
+    reverse: "inversion",
+	threshold: "Limite"
   }
 };
