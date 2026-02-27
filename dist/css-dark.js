@@ -255,22 +255,7 @@ export function cssDataDark(user) {
 			justify-content: center;
 			width: 30%;
 			gap: 5%;
-		}
-		
-		@keyframes flowDrops { to { stroke-dashoffset: -56; } }
-		
-		.flow-drops {
-		  animation: flowDrops 1.2s linear infinite;
-		  
-		  stroke: rgba(255,255,255,0.4) !important;
-
-		}
-		
-		.flow-drops-tail {
-		  animation: flowDrops 1.2s linear infinite;
-		  stroke: rgba(255,255,255,0.9) !important;
-		}
-		
+		}	
   `
     return css;
 
