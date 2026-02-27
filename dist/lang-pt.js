@@ -38,6 +38,7 @@ export default {
     start: "Início",
     end: "Fim",
     entity_picker: "Selecionar entidade",
-    reverse: "inverter"
+    reverse: "inverter",
+	threshold: "Limiar"
   }
 };
