@@ -38,6 +38,7 @@ export default {
     start: "Start",
     end: "Einde",
     entity_picker: "Selecteer entiteit",
-    reverse: "omkeren"
+    reverse: "omkeren",
+	threshold: "Drempelwaarde"
   }
 };
