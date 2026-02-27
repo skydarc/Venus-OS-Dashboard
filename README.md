@@ -1,6 +1,8 @@
 
 # 🗲 - Venus OS Dashboard - 🗲
 
+![venus](assets/preview1.gif)
+
 ![Overview](assets/preview1.png)
 
 ![Overview](assets/preview2.png)
