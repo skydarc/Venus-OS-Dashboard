@@ -3,9 +3,9 @@ export function cssDataDark(user) {
     
         ha-card {
             --box-background-color: #1f2a3c;  	/* Couleur de fond de la box */
-            --box-shadow-color: #38619b;      	/* Couleur de l'ombre de la box */
-            --anchor-color: #38619b;            /* Couleur du point d'accroche */
-	    --line-color: #4369a2; 				/* Couleur de la ligne */
+            --box-shadow-color: #387dc5;      	/* Couleur de l'ombre de la box */
+            --anchor-color: #387dc5;            /* Couleur du point d'accroche */
+	        --line-color: #387dc5; 				/* Couleur de la ligne */
         }
         
         .db-container {
@@ -49,13 +49,16 @@ export function cssDataDark(user) {
         }
 
         .box {
-            background-color: var(--box-background-color);  /* Utilisation de la variable pour la couleur de fond */
+            background-color: var(--box-background-color); 
             color: white;
             /*font-weight: bold;*/
             border-radius: 5px;
-            box-shadow: 0px 0px 1px 2px var(--box-shadow-color);  /* Utilisation de la variable pour la couleur de l'ombre */
+            /*box-shadow: 0px 0px 1px 2px var(--box-shadow-color);  */
+			border-style: solid;
+			border-width: 2px;
+			border-color: var(--box-shadow-color);
             height: 100%;
-            max-height: 45%;
+            /*max-height: 45%;*/
             margin: 5px;
             display: flex;
             justify-content: center;
@@ -116,7 +119,7 @@ export function cssDataDark(user) {
 			top: 0px;
         }
 		
-		.line g path{
+		.line g path.link-path{
 			stroke: var(--line-color);
 			box-shadow: 0px 0px 1px 1px var(--line-color);
         }
@@ -140,7 +143,7 @@ export function cssDataDark(user) {
 			display: flex;
 			align-items: center;
 			width: 100%;
-			height: 15%;
+			/*height: 15%;*/
 			gap: 3%;
 			z-index: 2;
 		}
@@ -211,13 +214,13 @@ export function cssDataDark(user) {
 			left: 0px;
 			bottom: 0px;
 			width: 100%;
-			background: linear-gradient(to bottom, #70a1d5, #547dbb);
+			background: linear-gradient(to bottom, #387dc5, #387dc5);
 			opacity: 0.8;
 			z-index: 1;
 			border-radius: 0 0 5px 5px;
 		}
 
-		.gauge::before {
+		/*.gauge::before {
 		    content: "";
 		    position: absolute;
 		    top: 0;
@@ -229,11 +232,10 @@ export function cssDataDark(user) {
 		    background-repeat: repeat;
 		    background-size: 30px 12px;
 
-		    /* Masque pour estomper */
 		    mask-image: linear-gradient(to bottom, #fff4, transparent);
 		    mask-repeat: no-repeat;
 		    mask-size: 100% 100%;
-		}
+		}*/
 		
 		.boxFooter {
 			position: absolute;
@@ -253,6 +255,20 @@ export function cssDataDark(user) {
 			justify-content: center;
 			width: 30%;
 			gap: 5%;
+		}
+		
+		@keyframes flowDrops { to { stroke-dashoffset: -56; } }
+		
+		.flow-drops {
+		  animation: flowDrops 1.2s linear infinite;
+		  
+		  stroke: rgba(255,255,255,0.4) !important;
+
+		}
+		
+		.flow-drops-tail {
+		  animation: flowDrops 1.2s linear infinite;
+		  stroke: rgba(255,255,255,0.9) !important;
 		}
 		
   `
