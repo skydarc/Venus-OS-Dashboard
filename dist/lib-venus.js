@@ -23,21 +23,7 @@ export function baseRender(config, appendTo) {
     appendTo.innerHTML = `
 	    <div id="dashboard" class="dashboard">
     		<svg id="svg_container" class="line" viewBox="0 0 1000 600" width="100%" height="100%">
-    			<defs>
-    				<filter id="blurEffect">
-    					<feGaussianBlur in="SourceGraphic" stdDeviation="1"/> <!-- Ajuste stdDeviation pour plus ou moins de flou -->
-    				</filter>
-    				<radialGradient id="gradientDark" cx="50%" cy="50%" r="50%">
-    					<stop offset="0%" stop-color="#ffffff" stop-opacity="1"></stop>
-    					<stop offset="90%" stop-color="#ffffff" stop-opacity="0"></stop>
-    				</radialGradient>
-    				<radialGradient id="gradientLight" cx="50%" cy="50%" r="50%">
-    					<stop offset="0%" stop-color="#000000" stop-opacity="1"></stop>
-    					<stop offset="90%" stop-color="#000000" stop-opacity="0"></stop>
-    				</radialGradient>
-    			</defs>
-        		<g id="path_container" class="balls"></g>
-    			<g id="circ_container" class="lines"></g>
+        		<g id="path_container" class="lines"></g>
     		</svg>
             <div id="column-1" class="column column-1"></div>
             <div id="column-2" class="column column-2"></div>
@@ -464,7 +450,6 @@ export function checkReSize(devices, isDarkTheme, appendTo) {
     if(dashboardOldWidth != rect.width) {
         
         // conteneur des path et des circles
-        const circContainer = appendTo.querySelector(`#dashboard > #svg_container > #circ_container`);
         const pathContainer = appendTo.querySelector(`#dashboard > #svg_container > #path_container`);
             
         // si le DOM est fini...
@@ -481,7 +466,6 @@ export function checkReSize(devices, isDarkTheme, appendTo) {
                 // different cas...
                 if (mustRedrawLine) { // suite a une mise a jour du yaml
                         
-                    circContainer.innerHTML = "";
                     pathContainer.innerHTML = "";
                     addLine(devices, isDarkTheme, appendTo);
                         
@@ -489,7 +473,6 @@ export function checkReSize(devices, isDarkTheme, appendTo) {
 
                     editorOpen = true;
                         
-                    circContainer.innerHTML = "";
                     pathContainer.innerHTML = "";
                     addLine(devices, isDarkTheme, appendTo);
                         
@@ -499,13 +482,11 @@ export function checkReSize(devices, isDarkTheme, appendTo) {
                         
                     editorOpen = false;
 
-                    circContainer.innerHTML = "";
                     pathContainer.innerHTML = "";
                     addLine(devices, isDarkTheme, appendTo);
                         
                 } else {
 
-                    circContainer.innerHTML = "";
                     pathContainer.innerHTML = "";
                     addLine(devices, isDarkTheme, appendTo);
                         
@@ -561,6 +542,83 @@ function addLine(devices, isDarkTheme, appendTo) {
     }
 }
 
+function isHorizontalAnchor(anchorId) {
+  // L/R => sortie horizontale, T/B => sortie verticale
+  return anchorId.includes("_L-") || anchorId.includes("_R-");
+}
+function anchorOutDir(anchorId) {
+  if (anchorId.includes("_L-")) return { dx: -1, dy: 0 };
+  if (anchorId.includes("_R-")) return { dx:  1, dy: 0 };
+  if (anchorId.includes("_T-")) return { dx: 0, dy: -1 };
+  if (anchorId.includes("_B-")) return { dx: 0, dy:  1 };
+  return { dx: 0, dy: 0 };
+}
+function roundedOrthogonalPath(points, r0 = 18) {
+  if (!points || points.length < 2) return "";
+
+  const segLen = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
+
+  // Cas simple
+  if (points.length === 2) {
+    return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+  }
+
+  let d = `M ${points[0].x} ${points[0].y}`;
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const p0 = points[i - 1];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+
+    const v1x = p1.x - p0.x;
+    const v1y = p1.y - p0.y;
+    const v2x = p2.x - p1.x;
+    const v2y = p2.y - p1.y;
+
+    const len1 = segLen(p0, p1);
+    const len2 = segLen(p1, p2);
+
+    // Si pas un "coin" (colinéaire) ou segment trop court => line direct
+    const isCorner = (v1x !== 0 || v1y !== 0) && (v2x !== 0 || v2y !== 0) && (v1x === 0) !== (v2x === 0);
+    if (!isCorner || len1 < 0.001 || len2 < 0.001) {
+      d += ` L ${p1.x} ${p1.y}`;
+      continue;
+    }
+
+    // Rayon adaptatif : doit "rentrer" dans les 2 segments adjacents
+    const r = Math.max(0, Math.min(r0, len1 / 2, len2 / 2));
+
+    if (r <= 0.001) {
+      d += ` L ${p1.x} ${p1.y}`;
+      continue;
+    }
+
+    // point avant le coin (reculer de r sur le segment p0->p1)
+    const pIn = {
+      x: p1.x - (v1x !== 0 ? Math.sign(v1x) * r : 0),
+      y: p1.y - (v1y !== 0 ? Math.sign(v1y) * r : 0),
+    };
+    // point après le coin (avancer de r sur le segment p1->p2)
+    const pOut = {
+      x: p1.x + (v2x !== 0 ? Math.sign(v2x) * r : 0),
+      y: p1.y + (v2y !== 0 ? Math.sign(v2y) * r : 0),
+    };
+
+    // Sweep pour l’arc (sens horaire/anti-horaire) via produit vectoriel 2D
+    // v1 (entrant) = (p1 - p0), v2 (sortant) = (p2 - p1)
+    const cross = v1x * v2y - v1y * v2x;
+	const sweep = cross < 0 ? 0 : 1;
+
+    d += ` L ${pIn.x} ${pIn.y}`;
+    d += ` A ${r} ${r} 0 0 ${sweep} ${pOut.x} ${pOut.y}`;
+  }
+
+  // dernier point
+  const last = points[points.length - 1];
+  d += ` L ${last.x} ${last.y}`;
+  return d;
+}
+
 /*********************************************************/
 /* fonction de creation des liens entre les box :        */
 /* recoit en param l'ancre de depart, l'ancre d'arrivée, */
@@ -568,13 +626,7 @@ function addLine(devices, isDarkTheme, appendTo) {
 /*********************************************************/
 function creatLine(anchorId1, anchorId2, direction_init, isDarkTheme, appendTo) {
     
-    const circContainer = appendTo.querySelector(`#dashboard > #svg_container > #circ_container`);
     const pathContainer = appendTo.querySelector(`#dashboard > #svg_container > #path_container`);
-
-    if (!circContainer) {
-		console.error("circContainer container introuvable.");
-		return;
-	}
 	
 	if (!pathContainer) {
 		console.error("pathContainer container introuvable.");
@@ -590,43 +642,145 @@ function creatLine(anchorId1, anchorId2, direction_init, isDarkTheme, appendTo) 
 	}
 	
 	let pathData = "";
-	
-	if (coords1.x === coords2.x || coords1.y === coords2.y) {
-        pathData = `M ${coords1.x} ${coords1.y} L ${coords2.x} ${coords2.y}`;
-    } else {
-	
-    	const anchor1isH = anchorId1.includes("L") || anchorId1.includes("R");
-    	const anchor2isH = anchorId2.includes("L") || anchorId2.includes("R");
 
-    	if (anchor1isH && anchor2isH) {
-    		const midX = (coords1.x + coords2.x) / 2;
-    		// Définition du chemin avec deux courbes symétriques
-    		pathData = `
-    			M ${coords1.x} ${coords1.y}
-    			C ${midX} ${coords1.y}, ${midX} ${coords1.y}, ${midX} ${(coords1.y + coords2.y) / 2}
-    			C ${midX} ${coords2.y}, ${midX} ${coords2.y}, ${coords2.x} ${coords2.y}
-    		`;
-    	} else if (!anchor1isH && !anchor2isH) {
-    		const midY = (coords1.y + coords2.y) / 2;
-    		// Définition du chemin avec deux courbes : vertical -> horizontal -> vertical
-    		pathData = `
-    			M ${coords1.x} ${coords1.y} 
-    			C ${coords1.x} ${midY}, ${coords1.x} ${midY}, ${(coords1.x + coords2.x)/2} ${midY} 
-    			C ${coords2.x} ${midY}, ${coords2.x} ${midY}, ${coords2.x} ${coords2.y}
-    		`;
-    	} else {
-    		if (anchor1isH) {
-    			coords1 = getAnchorCoordinates(anchorId2, appendTo);
-    			coords2 = getAnchorCoordinates(anchorId1, appendTo);
-    		}
-    		const midY = (coords1.y + coords2.y) / 2;
-    		// Définition du chemin avec un seul virage
-    		pathData = `
-    			M ${coords1.x} ${coords1.y} 
-    			C ${coords1.x} ${coords2.y}, ${coords1.x} ${coords2.y}, ${coords2.x} ${coords2.y}
-    		`;
-    	}
-    }
+	// petite "sortie" depuis l’ancre (comme Victron, mais paramétrable)
+	const stub = 5;     // longueur sortie/entrée
+	const r0   = 40;     // rayon "idéal" (sera réduit si pas la place)
+
+	// Point de départ / arrivée
+	const pStart = { x: coords1.x, y: coords1.y };
+	const pEnd   = { x: coords2.x, y: coords2.y };
+
+	// Sortie depuis l’ancre 1
+	const d1 = anchorOutDir(anchorId1);
+	const p1 = { x: pStart.x + d1.dx * stub, y: pStart.y + d1.dy * stub };
+
+	// Entrée vers l’ancre 2 (on arrive depuis l’extérieur)
+	const d2 = anchorOutDir(anchorId2);
+	const p2 = { x: pEnd.x + d2.dx * stub, y: pEnd.y + d2.dy * stub };
+
+	// On relie p1 -> p2 en orthogonal (H puis V ou V puis H)
+	const dx = p2.x - p1.x;
+	const dy = p2.y - p1.y;
+
+	const startH = isHorizontalAnchor(anchorId1);
+	const endH   = isHorizontalAnchor(anchorId2);
+
+	let points = null;
+
+	if (startH && endH) {
+	  const xMid = Math.round((p1.x + p2.x) / 2);
+
+	  const dx1 = Math.abs(xMid - p1.x);
+	  const dy1 = Math.abs(p2.y - p1.y);
+
+	  // Rayon global : peut aller jusqu’à dx/2, réduit si dy trop petit
+	  const r = Math.max(0, Math.min(r0, dx1, dy1 / 2));
+
+	  const sx = xMid >= p1.x ? 1 : -1;
+	  const sy = p2.y >= p1.y ? 1 : -1;
+
+	  // Si r==0 => L sec
+	  if (r < 0.001) {
+		pathData = `M ${pStart.x} ${pStart.y}
+					L ${p1.x} ${p1.y}
+					L ${xMid} ${p1.y}
+					L ${xMid} ${p2.y}
+					L ${p2.x} ${p2.y}
+					L ${pEnd.x} ${pEnd.y}`;
+	  } else {
+		// 2 coins (haut et bas) avec même rayon r
+		// coin 1 à (xMid, y1), coin 2 à (xMid, y2)
+		const y1 = p1.y;
+		const y2 = p2.y;
+
+		const sweepTop = (sx === 1 && sy === 1) || (sx === -1 && sy === -1) ? 1 : 0;
+		const sweepBot = 1 - sweepTop; // même orientation
+
+		pathData = [
+		  `M ${pStart.x} ${pStart.y}`,
+		  `L ${p1.x} ${p1.y}`,
+		  `L ${xMid - sx * r} ${y1}`,
+		  `A ${r} ${r} 0 0 ${sweepTop} ${xMid} ${y1 + sy * r}`,
+		  `L ${xMid} ${y2 - sy * r}`,
+		  `A ${r} ${r} 0 0 ${sweepBot} ${xMid + sx * r} ${y2}`,
+		  `L ${p2.x} ${p2.y}`,
+		  `L ${pEnd.x} ${pEnd.y}`,
+		].join(" ");
+	  }
+	}
+	else {
+	  // Cas simple : un seul virage (mix d’ancres ou TB/TB par défaut)
+	  // On choisit une stratégie qui évite les segments nuls
+	  const r0simple = r0;
+
+	  // Choix du coin: H puis V (corner à x2,y1) ou V puis H (corner à x1,y2)
+	  const preferH = startH || (!endH && Math.abs(dx) >= Math.abs(dy));
+
+	  if (preferH) {
+		// H -> V, coin en (p2.x, p1.y)
+		const xC = p2.x;
+		const yC = p1.y;
+
+		const adx = Math.abs(xC - p1.x);
+		const ady = Math.abs(p2.y - yC);
+		const r = Math.max(0, Math.min(r0simple, adx, ady));
+
+		const sx = xC >= p1.x ? 1 : -1;
+		const sy = p2.y >= yC ? 1 : -1;
+
+		if (r < 0.001) {
+		  pathData = `M ${pStart.x} ${pStart.y}
+					  L ${p1.x} ${p1.y}
+					  L ${xC} ${yC}
+					  L ${p2.x} ${p2.y}
+					  L ${pEnd.x} ${pEnd.y}`;
+		} else {
+		  const sweep = (sx === 1 && sy === 1) || (sx === -1 && sy === -1) ? 1 : 0;
+		  pathData = [
+			`M ${pStart.x} ${pStart.y}`,
+			`L ${p1.x} ${p1.y}`,
+			`L ${xC - sx * r} ${yC}`,
+			`A ${r} ${r} 0 0 ${sweep} ${xC} ${yC + sy * r}`,
+			`L ${p2.x} ${p2.y}`,
+			`L ${pEnd.x} ${pEnd.y}`,
+		  ].join(" ");
+		}
+	  } else {
+		// V -> H, coin en (p1.x, p2.y)
+		const xC = p1.x;
+		const yC = p2.y;
+
+		const adx = Math.abs(p2.x - xC);
+		const ady = Math.abs(yC - p1.y);
+		const r = Math.max(0, Math.min(r0simple, adx, ady));
+
+		const sx = p2.x >= xC ? 1 : -1;
+		const sy = yC >= p1.y ? 1 : -1;
+
+		if (r < 0.001) {
+		  pathData = `M ${pStart.x} ${pStart.y}
+					  L ${p1.x} ${p1.y}
+					  L ${xC} ${yC}
+					  L ${p2.x} ${p2.y}
+					  L ${pEnd.x} ${pEnd.y}`;
+		} else {
+		  // Pour V->H le sweep est inversé par rapport au cas H->V
+		  const sweep = (sx === 1 && sy === 1) || (sx === -1 && sy === -1) ? 0 : 1;
+		  pathData = [
+			`M ${pStart.x} ${pStart.y}`,
+			`L ${p1.x} ${p1.y}`,
+			`L ${xC} ${yC - sy * r}`,
+			`A ${r} ${r} 0 0 ${sweep} ${xC + sx * r} ${yC}`,
+			`L ${p2.x} ${p2.y}`,
+			`L ${pEnd.x} ${pEnd.y}`,
+		  ].join(" ");
+		}
+	  }
+	}
+
+	//points = points.filter((pt, i) => i === 0 || pt.x !== points[i - 1].x || pt.y !== points[i - 1].y);
+	//pathData = roundedOrthogonalPath(points, r0);
     
 	// Création de l'élément SVG <path>
 	const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -642,27 +796,60 @@ function creatLine(anchorId1, anchorId2, direction_init, isDarkTheme, appendTo) 
 	path.setAttribute("stroke-width", "2");
 	//path.setAttribute("filter", "url(#blurEffect)"); // Utilisation du dégradé
 	
-	// Créer la boule avec le dégradé
-	const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-	circle.setAttribute("class", "ball");
-	circle.setAttribute("cx", coords1.x); // Départ de la boule
-	circle.setAttribute("cy", coords1.y); // Départ de la boule
-	circle.setAttribute("r", "4");
-	if(isDarkTheme) circle.setAttribute("fill", "url(#gradientDark)"); // Utilisation du dégradé
-	else circle.setAttribute("fill", "url(#gradientLight)"); // Utilisation du dégradé
+	// Ligne principale
+	path.setAttribute("stroke", "var(--line-color)");
+	path.setAttribute("stroke-linecap", "round");
+	path.setAttribute("stroke-linejoin", "round");
 	
-	// Ajouter le path et le circle au groupe
+	path.classList.add("link-path");
+
+	// === Path animé "gouttes" ===
+	const flow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+	flow.setAttribute("d", pathData);
+	flow.setAttribute("fill", "none");
+	flow.setAttribute("stroke-width", "8");
+	flow.setAttribute("stroke-linecap", "round");
+	flow.setAttribute("stroke-linejoin", "round");
+	//flow.setAttribute("filter", "url(#blurEffect)"); // Utilisation du dégradé
+
+	// couleur douce type Victron
+	flow.setAttribute("stroke", "rgba(255,255,255,0.4)");
+
+	// 1px visible + 55px vide => plusieurs gouttes visibles dès t=0
+	const dropLen = 1;
+	const gapLen  = 55;
+
+	flow.setAttribute("stroke-dasharray", `${dropLen} ${gapLen}`);
+	flow.setAttribute("stroke-dashoffset", "0");
+	flow.classList.add("flow-drops");
+	
+	// === couche "tail" (trait + dégradé) ===
+	const tail = document.createElementNS("http://www.w3.org/2000/svg", "path");
+	tail.setAttribute("d", pathData);
+	tail.setAttribute("fill", "none");
+	tail.setAttribute("stroke-width", "2");           // largeur = ligne
+	tail.setAttribute("stroke-linecap", "round");
+	tail.setAttribute("stroke-linejoin", "round");
+
+	// Dégradé blanc (dans le sens du path)
+	tail.setAttribute("stroke", "rgba(255,255,255,0.9)");
+
+	// Dash plus long pour faire une "trainée"
+	const tailLen = 1;
+	const tailGap = 55;
+	tail.setAttribute("stroke-dasharray", `${tailLen} ${tailGap}`);
+	tail.setAttribute("stroke-dashoffset", "0");
+	tail.classList.add("flow-drops-tail");
+
+	// Ajout au SVG
 	pathContainer.appendChild(path);
-	circContainer.appendChild(circle);
-	
-	// Animer la boule le long du path et recuperation du pointeur de fonction "reverse"
-	const controls = animateBallAlongPath(anchorId1, path, circle, appendTo);
-	
-	// ajout du pointeur "reverse" dans un "map" pour exploitation ulterieur
-	pathControls.set(anchorId1, controls);
-	
-	// ajout de la direction d'origine de path dans un map
+	pathContainer.appendChild(tail);
+	pathContainer.appendChild(flow);
+
+	// Gestion direction
 	directionControls.set(anchorId1, direction_init);
+	const controls = animateFlowAlongPath(anchorId1, [tail, flow]);
+	pathControls.set(anchorId1, controls);
 }
 
 /*********************************************************/
@@ -705,54 +892,36 @@ function getAnchorCoordinates(anchorId, appendTo) {
 /* circle, le path pour le deplacement du circle, et le circle à  */
 /* deplacer                                                       */
 /******************************************************************/
-function animateBallAlongPath(anchorId1, path, circle, appendTo) {
-	
-	let direction = directionControls.get(anchorId1);
-	
-	const pathLength = path.getTotalLength(); // Longueur totale du path
-	
-	const box = appendTo.querySelector(`#dashboard`);
-	const boxWidth = box.offsetWidth;
+function animateFlowAlongPath(anchorId1, flowPath) {
+  const paths = Array.isArray(flowPath) ? flowPath : [flowPath];
 
-	const speed = boxWidth/10; // Vitesse de la boule en pixels par seconde 100/900
-	const duration = pathLength / speed * 1000; // Durée de l'animation (en ms)
-	let startTime;
-	
-	function reverseDirection(cmd) {
-	    const directionInit = directionControls.get(anchorId1);
-		direction = directionInit*cmd; // Inverser la direction
-	}
-	
-	function moveBall(time) {
-		if (!startTime) startTime = time;
-		
-		const elapsed = time - startTime; // Temps écoulé
-		var progress = (elapsed % duration) / duration; // Progression sur l'animation (0 à 1)
-		
-		if (direction == -1) {
-			progress = 1 - progress; // Inverse la progression pour revenir en arrière
-		} if (direction == 0) {
-			progress = 0; 
-		}
-		
-		// Calculer la position actuelle sur le path, proportionnelle à la durée
-		const point = path.getPointAtLength(progress * pathLength);
-		
-		// Déplacer la boule
-		circle.setAttribute("cx", point.x);
-		circle.setAttribute("cy", point.y);
-		
-		// Continuer l'animation
-		requestAnimationFrame(moveBall);
-	}
-	
-	// Démarrer l'animation
-	requestAnimationFrame(moveBall);
-	
-	// renvoi le pointeur de la fonction "reverse"
-	return {
-		reverse: reverseDirection,
-	};
+  let direction = directionControls.get(anchorId1) ?? 1;
+
+  function applyDir() {
+    const isStopped = (direction === 0);
+    const animDir = direction === -1 ? "reverse" : "normal";
+    const play = isStopped ? "paused" : "running";
+    const opacity = isStopped ? "0" : "1";
+
+    for (const p of paths) {
+      if (!p) continue; // sécurité si un path est null/undefined
+      p.style.animationDirection = animDir;
+      p.style.animationPlayState = play;
+      p.style.opacity = opacity;
+    }
+  }
+
+  function reverseDirection(cmd) {
+    const directionInit = directionControls.get(anchorId1) ?? 1;
+    direction = directionInit * cmd; // -1, 0, +1
+    applyDir();
+  }
+
+  applyDir();
+
+  return {
+    reverse: reverseDirection,
+  };
 }
 
 /******************************************************/
@@ -946,10 +1115,6 @@ async function fetchHistoricalData(entityId, periodInHours = 24, hass, numSegmen
         return false;
     }
 }
-
-
-
-
 
 export const getEntityNames = (entities) => {
   return entities?.split("|").map((p) => p.trim());
