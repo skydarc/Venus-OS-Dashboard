@@ -3,7 +3,7 @@
 
 ![Overview](assets/preview1.png)
 
-<img src="assets/preview2.png" width="300">
+![Overview](assets/preview2.png)
 
 ## **What is Venus OS Dashboard ?**
 
