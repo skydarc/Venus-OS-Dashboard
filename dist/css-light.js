@@ -55,7 +55,7 @@ export function cssDataLight(user) {
             border-radius: 5px;
             box-shadow: 0px 0px 1px 2px var(--box-shadow-color);  /* Utilisation de la variable pour la couleur de l'ombre */
             height: 100%;
-            max-height: 45%;
+            /*max-height: 45%;*/
             margin: 5px;
             display: flex;
             justify-content: center;
@@ -116,7 +116,7 @@ export function cssDataLight(user) {
 			top: 0px;
         }
 		
-		.line g path{
+		.line g path.link-path{
 			stroke: var(--line-color);
 			box-shadow: 0px 0px 1px 1px var(--line-color);
         }
@@ -140,7 +140,7 @@ export function cssDataLight(user) {
 			display: flex;
 			align-items: center;
 			width: 100%;
-			height: 15%;
+			/*height: 15%;*/
 			gap: 3%;
 			z-index: 2;
 		}
@@ -217,7 +217,7 @@ export function cssDataLight(user) {
 			border-radius: 0 0 5px 5px;
 		}
 
-		.gauge::before {
+		/*.gauge::before {
 		    content: "";
 		    position: absolute;
 		    top: 0;
@@ -229,11 +229,11 @@ export function cssDataLight(user) {
 		    background-repeat: repeat;
 		    background-size: 30px 12px;
 
-		    /* Masque pour estomper */
+
 		    mask-image: linear-gradient(to bottom, #fff4, transparent);
 		    mask-repeat: no-repeat;
 		    mask-size: 100% 100%;
-		}
+		}*/
 		
 		.boxFooter {
 			position: absolute;
@@ -255,6 +255,20 @@ export function cssDataLight(user) {
 			gap: 5%;
 		}
 		
+		@keyframes flowDrops { to { stroke-dashoffset: -56; } }
+		@keyframes flowTail  { to { stroke-dashoffset: -56; } }
+
+		.flow-drops {
+		  animation: flowDrops 1.2s linear infinite;
+		  
+		  stroke: rgba(0,0,255,0.4) !important;
+
+		}
+		
+		.flow-drops-tail {
+		  animation: flowTail 1.2s linear infinite;
+
+		}
   `
     return css;
 
