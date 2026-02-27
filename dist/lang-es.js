@@ -39,6 +39,7 @@ port default {
     start: "Inicio",
     end: "Fin",
     entity_picker: "Seleccionar entidad",
-    reverse: "inverso"
+    reverse: "Inverso",
+	threshold: "Límite"
   }
 };
