@@ -20,7 +20,7 @@ Venus OS Dashboard is a card that replicates the look and feel of the Venus OS G
 -   🌈 Based on Material UI
 -   🌓 Supports both light and dark themes
 -   🌎 Internationalization :
-      FR | EN | IT | ES | PT | DE | NL
+      FR | EN | IT | ES | PT | DE | NL | RU | PL | TR | AR
 
 ---
 
@@ -36,6 +36,15 @@ new feature with some inspired from KeonHHH fork (thanks for him):
 | Example layout | Not included | Added `example.yaml` (Grid, Solar, Inverter, Loads, Battery) |
 | Editor / UX | Some untranslated UI | Improved editor UI, translated strings |
 | VRM visual match | resemblance | animations, sizing — closer to VRM style |
+| Multi instance in one panel | bug, no link | multi instance/card in one panel |
+
+news features :
+- replace sign +/- with arrow like venus-os, optional, with one toggle,
+- new lateral gauge like venus-os, same think, optional, multicolor (see below),
+- new language RU, PL, TR, AR,
+- back of gauge texture, togglized,
+- wave animation au main gauge, idem, togglized,
+- AAANNNNND finally new gestion of "tap" action (navigation, info entity, toggle, service call...
 
 ## **Installation**
 
