@@ -172,6 +172,28 @@ export function cssDataDark(user) {
 			gap: 3%;
 			z-index: 2;
 		}
+
+		.signIcon{
+		  width: 16px;
+		  height: 18px;
+		  display: inline-block;
+		  background: currentColor;
+
+		  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 18'><path d='M 2.3 14.7 C 2.1 14.5 2 14.3 2 14 C 2 13.9 2 13.8 2.1 13.6 L 4.5 9 L 2.1 4.4 C 2 4 2.1 3.6 2.4 3.3 C 2.7 3 3.2 3 3.5 3.1 L 12.5 8 C 13.3 8.3 13.3 9.6 12.5 10 L 3.5 15 C 3.1 15.1 2.6 15 2.3 14.7 Z'/></svg>") center/contain no-repeat;
+				  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 18'><path d='M 2.3 14.7 C 2.1 14.5 2 14.3 2 14 C 2 13.9 2 13.8 2.1 13.6 L 4.5 9 L 2.1 4.4 C 2 4 2.1 3.6 2.4 3.3 C 2.7 3 3.2 3 3.5 3.1 L 12.5 8 C 13.3 8.3 13.3 9.6 12.5 10 L 3.5 15 C 3.1 15.1 2.6 15 2.3 14.7 Z'/></svg>") center/contain no-repeat;
+		}
+
+		.signIconPos{
+		  /* bleu + vers la gauche */
+		  background: #2f86ff;
+		  transform: rotate(0deg);
+		}
+
+		.signIconNeg{
+		  /* vert + vers la droite */
+		  background: #37d27a;
+		  transform: rotate(180deg);
+		}
 		
 		.boxSensor1 {
 			display: flex;
@@ -218,9 +240,10 @@ export function cssDataDark(user) {
 			opacity: 0.8;
 			z-index: 1;
 			border-radius: 0 0 5px 5px;
+			overflow: hidden;
 		}
 
-		/*.gauge::before {
+		.gauge.gaugeTexture::before {
 		    content: "";
 		    position: absolute;
 		    top: 0;
@@ -235,7 +258,36 @@ export function cssDataDark(user) {
 		    mask-image: linear-gradient(to bottom, #fff4, transparent);
 		    mask-repeat: no-repeat;
 		    mask-size: 100% 100%;
-		}*/
+			
+			pointer-events: none;
+		}
+		
+		/* Vague blanche dans la gauge (désactivée par défaut) */
+		.gauge.chargeWave::after{
+		  content: "";
+		  position: absolute;
+		  width: 100%;
+		  height: 50%;           
+		  bottom: -50%;
+
+		  /* vague “douce” via 2 dégradés radiaux */
+		  background: linear-gradient(
+			to top,
+			rgba(255,255,255,0.0),
+			rgba(255,255,255,0.35)
+		  );
+		  
+		  opacity: 0.9;
+
+		  animation: gaugeWaveUp 1.8s linear infinite;
+		  pointer-events: none;
+		}
+
+		/* Animation : la vague “monte” dans le fill */
+		@keyframes gaugeWaveUp{
+		  from { transform: translateY(0); }
+		  to   { transform: translateY(-1000%); }
+		}
 		
 		.boxFooter {
 			position: absolute;
@@ -255,7 +307,42 @@ export function cssDataDark(user) {
 			justify-content: center;
 			width: 30%;
 			gap: 5%;
-		}	
+		}
+		
+		.box{
+		  position: relative; /* important */
+		}
+
+		.sideGauge{
+		  position: absolute;
+		  right: 3%;
+		  top: 5%;
+		  bottom: 5%;
+		  width: 4%;
+		  border-radius: 4px;
+		  background: rgba(255,255,255,0.08); /* ou noir en light si tu veux */
+		  overflow: hidden;
+		}
+
+		.sideGaugeFill{
+		  position: absolute;
+		  left: 0;
+		  right: 0;
+		  bottom: 0;
+		  height: 0%;
+		  background: rgba(80,160,255,0.85); /* à ajuster */
+		}
+		
+		.sideGaugeFill.sg-blue   { background: --line-color; }
+		.sideGaugeFill.sg-orange { background: #ff9f2e; }
+		.sideGaugeFill.sg-red    { background: #ff4b4b; }
+		.sideGaugeFill.sg-green  { background: #2ecc71; }
+		
+		/* BACKGROUND (transparent) */
+		.sideGauge.sg-blue   { background: rgba(255,255,255,0.08); }
+		.sideGauge.sg-orange { background: rgba(255,159,46,0.15); }
+		.sideGauge.sg-red    { background: rgba(255,75,75,0.15); }
+		.sideGauge.sg-green  { background: rgba(46,204,113,0.15); }
   `
     return css;
 

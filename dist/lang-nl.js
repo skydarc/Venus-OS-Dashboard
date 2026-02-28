@@ -5,6 +5,7 @@ export default {
     dark: "Donker",
     auto: "Automatisch",
     devices_per_column: "Aantal \"apparaten\" per kolom:",
+	max_heigth: "Max hoogte van de dozen (%):",
     font_size_zones: "Lettergrootte in \"apparaten\"-zones:",
     in_header: "in koptekst",
     in_devices: "in apparaten",
@@ -20,7 +21,16 @@ export default {
     entity2_choice: "Kies secundaire entiteit",
     enable_graph: "Grafiek inschakelen",
     enable_gauge: "Meter in % inschakelen",
+	sensorSignIcon: "Richtingspictogram weergeven",
+	gauge_pct_title: "Configuratie van de hoofdindicator",
     warning_gauge: "Kan alleen worden ingeschakeld als de eenheid % is",
+	gauge_wave_entity: "Selecteer een entiteit",
+	enable_gaugeTexture: "Textuur weergeven",
+	header_actions_title: "Acties",
+	header_tap_actions: "Actie \"korte druk\"",
+	side_gauge_title: "Configuratie van de zij-indicator",
+	side_gauge_entity: "Selecteer een entiteit",
+	side_gauge_max: "Maximale waarde",
     header_footer_title: "Configuratie van sensoren in koptekst en voettekst",
     entity_header: "Selecteer koptekst-entiteit",
     entity_footer: "Selecteer voettekst-entiteit",
@@ -40,5 +50,20 @@ export default {
     entity_picker: "Selecteer entiteit",
     reverse: "omkeren",
 	threshold: "Drempelwaarde"
+  },
+  typeAction: {
+    def: "Standaard (meer info)",
+    info: "Meer info",
+    nav: "Navigatie",
+    tgl: "Omschakelen",
+    srv: "Service aanroepen",
+    none: "Geen"
+  },
+  actionArea: {
+    def_entity: "Entiteit (optioneel)",
+    nav_path: "Navigatiepad",
+    service: "Service (domain.service)",
+    service_entity: "Entiteit-ID",
+    service_value: "Waarde (optioneel)"
   }
 };

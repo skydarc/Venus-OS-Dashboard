@@ -5,6 +5,7 @@ export default {
     dark: "Dunkel",
     auto: "Auto",
     devices_per_column: "Anzahl der \"Geräte\" pro Spalte:",
+	max_heigth: "Maximale Boxhöhe (%):",
     font_size_zones: "Schriftgröße in \"Geräte\"-Zonen:",
     in_header: "in Kopfzeile",
     in_devices: "in Geräten",
@@ -21,7 +22,16 @@ export default {
     decimals_choice: "Dezimalstellen",
     enable_graph: "Grafik aktivieren",
     enable_gauge: "Anzeige in % aktivieren",
+	sensorSignIcon: "Richtungssymbol anzeigen",
+	gauge_pct_title: "Konfiguration der Hauptanzeige",
     warning_gauge: "Kann nur aktiviert werden, wenn die Maßeinheit % ist",
+	gauge_wave_entity: "Entität auswählen",
+	enable_gaugeTexture: "Textur anzeigen",
+	header_actions_title: "Aktionen",
+	header_tap_actions: "Aktion \"Tap\"",
+	side_gauge_title: "Konfiguration der seitlichen Anzeige",
+	side_gauge_entity: "Entität auswählen",
+	side_gauge_max: "Maximalwert",
     header_footer_title: "Kopf- und Fußzeilen-Sensoren Konfiguration",
     entity_header: "Kopfzeilen-Entität wählen",
     entity_footer: "Fußzeilen-Entität wählen",
@@ -41,5 +51,20 @@ export default {
     entity_picker: "Entität wählen",
     reverse: "Umkehren",
 	threshold: "Türschwelle"
+  },
+  typeAction: {
+    def: "Standard (mehr Infos)",
+    info: "Mehr Infos",
+    nav: "Navigation",
+    tgl: "Umschalten",
+    srv: "Dienst aufrufen",
+    none: "Keine"
+  },
+  actionArea: {
+    def_entity: "Entität (optional)",
+    nav_path: "Navigationspfad",
+    service: "Dienst (domain.service)",
+    service_entity: "Entitäts-ID",
+    service_value: "Wert (optional)"
   }
 };

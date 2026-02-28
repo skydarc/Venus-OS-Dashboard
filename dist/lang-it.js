@@ -5,6 +5,7 @@ export default {
     dark: "Scuro",
     auto: "Auto",
     devices_per_column: "Numero di \"Dispositivi\" per colonna:",
+	max_heigth: "Altezza massima delle caselle (%):",
     font_size_zones: "Dimensione font nelle zone \"Dispositivi\":",
     in_header: "nell'intestazione",
     in_devices: "nei dispositivi",
@@ -21,13 +22,22 @@ export default {
     decimals_choice: "Decimali",
     enable_graph: "Abilita grafico",
     enable_gauge: "Abilita indicatore in %",
+	sensorSignIcon: "Mostra icona di direzione",
+	gauge_pct_title: "Configurazione indicatore principale",
     warning_gauge: "Può essere abilitato solo se l'unità di misura è %",
+	gauge_wave_entity: "Seleziona un'entità",
+	enable_gaugeTexture: "Mostra texture",
+	header_actions_title: "Azioni",
+	header_tap_actions: "Azione \"pressione breve\"",
+	side_gauge_title: "Configurazione indicatore laterale",
+	side_gauge_entity: "Seleziona un'entità",
+	side_gauge_max: "Valore massimo",
     header_footer_title: "Configurazione sensori intestazione e piè di pagina",
     entity_header: "Seleziona entità intestazione",
     entity_footer: "Seleziona entità piè di pagina",
     entity2_footer: "Seleziona 2ª entità piè di pagina",
     entity3_footer: "Seleziona 3ª entità piè di pagina",
-    anchor_title: "Aggiungi ancora",
+    anchor_title: "Aggiungi ancoraggio",
     left_qtyBox: "Sinistra",
     top_qtyBox: "Alto",
     bottom_qtyBox: "Basso",
@@ -41,5 +51,20 @@ export default {
     entity_picker: "Seleziona entità",
     reverse: "inverso",
 	threshold: "Soglia"
+  },
+  typeAction: {
+    def: "Predefinito (maggiori informazioni)",
+    info: "Maggiori informazioni",
+    nav: "Navigazione",
+    tgl: "Attiva/Disattiva",
+    srv: "Chiama servizio",
+    none: "Nessuna"
+  },
+  actionArea: {
+    def_entity: "Entità (opzionale)",
+    nav_path: "Percorso di navigazione",
+    service: "Servizio (domain.service)",
+    service_entity: "ID entità",
+    service_value: "Valore (opzionale)"
   }
 };

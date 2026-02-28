@@ -5,6 +5,7 @@ export default {
     dark: "Escuro",
     auto: "Automático",
     devices_per_column: "Número de \"Dispositivos\" por coluna:",
+	max_heigth: "Altura máxima da caixa (%):",
     font_size_zones: "Tamanho da fonte nas zonas de \"Dispositivos\":",
     in_header: "no cabeçalho",
     in_devices: "nos dispositivos",
@@ -20,7 +21,16 @@ export default {
     entity2_choice: "Escolher entidade secundária",
     enable_graph: "Ativar gráfico",
     enable_gauge: "Ativar indicador em %",
+	sensorSignIcon: "Mostrar ícone de direção",
+	gauge_pct_title: "Configuración del indicador principal",
     warning_gauge: "Só pode ser ativado se a unidade de medida for %",
+	gauge_wave_entity: "Selecionar uma entidade",
+	enable_gaugeTexture: "Mostrar textura",
+	header_actions_title: "Ações",
+	header_tap_actions: "Ação \"pressão curta\"",
+	side_gauge_title: "Configuração do indicador lateral",
+	side_gauge_entity: "Selecionar uma entidade",
+	side_gauge_max: "Valor máximo",
     header_footer_title: "Configuração dos sensores de cabeçalho e rodapé",
     entity_header: "Selecionar entidade do cabeçalho",
     entity_footer: "Selecionar entidade do rodapé",
@@ -31,8 +41,8 @@ export default {
     top_qtyBox: "Cima",
     bottom_qtyBox: "Baixo",
     right_qtyBox: "Direita",
-    add_links: "Adicionar ligações",
-    add_link: "Adicionar ligação"
+    add_links: "Adicionar links",
+    add_link: "Adicionar link"
   },
   addLink: {
     start: "Início",
@@ -40,5 +50,20 @@ export default {
     entity_picker: "Selecionar entidade",
     reverse: "inverter",
 	threshold: "Limiar"
+  },
+  typeAction: {
+    def: "Padrão (mais informações)",
+    info: "Mais informações",
+    nav: "Navegação",
+    tgl: "Alternar",
+    srv: "Chamar serviço",
+    none: "Nenhuma"
+  },
+  actionArea: {
+    def_entity: "Entidade (opcional)",
+    nav_path: "Caminho de navegação",
+    service: "Serviço (domain.service)",
+    service_entity: "ID da entidade",
+    service_value: "Valor (opcional)"
   }
 };

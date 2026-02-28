@@ -133,6 +133,37 @@ export function tab1Render(appendTo) {
     devicesRow.appendChild(devicesLabel);
     devicesRow.appendChild(devicesRowContainer);
     editorDiv.appendChild(devicesRow);
+	
+	// Hauteur max des box (%), optionnel
+	const maxHeightRow = document.createElement('div');
+	maxHeightRow.classList.add('col');
+
+	const maxHeightLabel = document.createElement('div');
+	maxHeightLabel.classList.add('left');
+	maxHeightLabel.textContent = t("tab1Render", "max_heigth");
+
+	const maxHeightRowContainer = document.createElement('div');
+	maxHeightRowContainer.classList.add('row');
+
+	const maxHeightField = document.createElement('ha-textfield');
+	maxHeightField.classList.add('cell');
+	maxHeightField.setAttribute('id', 'maxHeigth');
+	maxHeightField.setAttribute('data-path', 'param.maxHeigth');
+	maxHeightField.setAttribute('label', '%');
+	maxHeightField.setAttribute('type', 'number');
+	maxHeightField.setAttribute('min', 1);
+	maxHeightField.setAttribute('max', 100);
+	maxHeightField.setAttribute('step', 1);
+
+	// optionnel : si absent => champ vide (et si l'utilisateur vide => suppression YAML via attachInputs)
+	const mh = appendTo._config.param?.maxHeigth;
+	maxHeightField.setAttribute('value', (mh !== undefined && mh !== null) ? mh : '');
+
+	maxHeightRowContainer.appendChild(maxHeightField);
+	maxHeightRow.appendChild(maxHeightLabel);
+	maxHeightRow.appendChild(maxHeightRowContainer);
+
+	editorDiv.appendChild(maxHeightRow);
     
     // Taille de la font dans les zones des "Devices"
     const fontSizeRow = document.createElement('div');
@@ -318,7 +349,7 @@ export function subtabRender(box, config, hass, appendTo) {
             </div>
         </ha-expansion-panel>
         
-        <!-- ENTITE 1 et 2-->
+        <!-- ENTITE 1 et 2 -->
         <ha-expansion-panel outlined id="subPanel_entities" header="${t("subtabRender", "sensor_title")}">
             <div class="col inner">
                 <ha-form class="cell" id="device_sensor_form"></ha-form>
@@ -326,22 +357,87 @@ export function subtabRender(box, config, hass, appendTo) {
     
                 <!-- SWITCHS GRAPH ET GAUGE -->
                 <div class="row">
-                    <div class="row cell">
-                        ${t("subtabRender", "enable_graph")} :
-                        <ha-switch class="cell right" 
-                            id="graph_switch"
-                            data-path="devices.${box}.graph" 
-                        ></ha-switch>
-                    </div>
-                    <div id="gauge_div" class="row cell">
-                        ${t("subtabRender", "enable_gauge")} :
-                        <ha-switch class="cell right"
-                            id="gauge_switch"
-                            data-path="devices.${box}.gauge" 
-                        ></ha-switch>
-                    </div>
+                  <div class="row cell">
+                    ${t("subtabRender", "enable_graph")} :
+                    <ha-switch class="cell right" 
+                      id="graph_switch"
+                      data-path="devices.${box}.graph" 
+                     ></ha-switch>
+                  </div>
                 </div>
+				
+				<!-- SWITCH SIGN ICON -->
+				<div class="row">
+				  <div class="row cell">
+					${t("subtabRender", "sensorSignIcon")} :
+					<ha-switch class="cell right"
+					  id="sensorSignIcon_switch"
+					  data-path="devices.${box}.sensorSignIcon"
+					></ha-switch>
+				  </div>
+				</div>
             </div>
+        </ha-expansion-panel>
+		
+		<!-- GAUGE CONTROL -->
+		<ha-expansion-panel outlined id="subPanel_gaugePct" header="${t("subtabRender","gauge_pct_title")}">
+		  <div class="col inner">
+			<div class="row">
+			  <div class="row cell">
+				${t("subtabRender","enable_gauge")} :
+				<ha-switch class="cell right"
+				  id="gauge_switch"
+				  data-path="devices.${box}.gauge"
+				></ha-switch>
+			  </div>
+			</div>
+
+			<ha-form class="cell" id="gauge_wave_entity_form"></ha-form>
+			
+			<div class="row">
+			  <div class="row cell">
+				${t("subtabRender","enable_gaugeTexture")} :
+				<ha-switch class="cell right"
+				  id="gaugeTexture_switch" 
+				  data-path="devices.${box}.gaugeTexture">
+				</ha-switch>
+			  </div>
+			</div>
+		  </div>
+		</ha-expansion-panel>
+		
+		<!-- SIDE GAUGE -->
+		<ha-expansion-panel outlined id="subPanel_sideGauge" header="${t("subtabRender", "side_gauge_title")}">
+		  <div class="col inner">
+			<ha-form class="cell" id="sideGauge_entity_form"></ha-form>
+
+			<div class="row">
+			  <ha-textfield class="cell"
+				id="sideGauge_max"
+				label="${t("subtabRender", "side_gauge_max")}"
+				data-path="devices.${box}.sideGaugeMax"
+				type="number"
+				min="1"
+				step="1"
+			  ></ha-textfield>
+			</div>
+		  </div>
+		</ha-expansion-panel>
+		
+		<!-- ACTIONS -->
+        <ha-expansion-panel outlined id="subPanel_actions" header="${t("subtabRender", "header_actions_title")}">
+          <div class="col inner">
+            <div class="row">
+              <ha-select
+			    class="cell"
+			    id="tap_action_type"
+			    label="${t("subtabRender", "header_tap_actions")}"
+			  ></ha-select>
+            </div>
+
+            <!-- Champs dynamiques -->
+            <div id="tap_action_fields" class="col"></div>
+          </div>
         </ha-expansion-panel>
         
         <!-- HEADER ET FOOTER 1 -->
@@ -434,10 +530,245 @@ export function subtabRender(box, config, hass, appendTo) {
     const nameField = subTabContent.querySelector('#device_name');
     const graphSwitch = subTabContent.querySelector('#graph_switch');
     const gaugeSwitch = subTabContent.querySelector('#gauge_switch');
+	const gaugeTextureSwitch = subTabContent.querySelector('#gaugeTexture_switch');
+	const signIconSwitch = subTabContent.querySelector('#sensorSignIcon_switch');
     const anchorLeft = subTabContent.querySelector('#anchor_left');
 	const anchorTop = subTabContent.querySelector('#anchor_top');
 	const anchorbottom = subTabContent.querySelector('#anchor_bottom');
 	const anchorRight = subTabContent.querySelector('#anchor_right');
+	
+	    // ------- ACTIONS (tap only for now) -------
+    const tapActionCombo = subTabContent.querySelector('#tap_action_type');
+    const tapFieldsHost = subTabContent.querySelector('#tap_action_fields');
+
+    const tapCfg = config?.devices?.[box]?.tap_action || {};
+    const tapAction = tapCfg?.action ?? "__default__"; // "" = default (=> supprimer clé)
+
+    if (tapActionCombo) {
+	  tapActionCombo.innerHTML = `
+		<mwc-list-item value="__default__">${t("typeAction", "def")}</mwc-list-item>
+		<mwc-list-item value="more-info">${t("typeAction", "info")}</mwc-list-item>
+		<mwc-list-item value="navigate">${t("typeAction", "nav")}</mwc-list-item>
+		<mwc-list-item value="toggle">${t("typeAction", "tgl")}</mwc-list-item>
+		<mwc-list-item value="call-service">${t("typeAction", "srv")}</mwc-list-item>
+		<mwc-list-item value="none">${t("typeAction", "none")}</mwc-list-item>
+	  `;
+	  tapActionCombo.value = tapAction;
+	}
+
+    const renderTapFields = () => {
+      if (!tapFieldsHost) return;
+
+      const cfgNow = config?.devices?.[box]?.tap_action || {};
+      const act = cfgNow?.action ?? "";
+
+      // reset
+      tapFieldsHost.innerHTML = "";
+
+      // helper: create a textfield
+      const mkText = (id, label, path, type = "text") => {
+        const tf = document.createElement("ha-textfield");
+        tf.classList.add("cell");
+        tf.id = id;
+        tf.setAttribute("label", label);
+        tf.setAttribute("data-path", path);
+        if (type === "number") tf.setAttribute("type", "number");
+        return tf;
+      };
+
+      // helper: create entity picker (optional)
+      const mkEntityPicker = (id, label, path) => {
+        const ep = document.createElement("ha-entity-picker");
+        ep.classList.add("cell");
+        ep.id = id;
+        ep.setAttribute("label", label);
+        ep.setAttribute("data-path", path);
+        ep.hass = hass;
+        return ep;
+      };
+
+      if (act === "more-info" || act === "toggle") {
+        // entity optional
+        const row = document.createElement("div");
+        row.classList.add("row");
+        const ep = mkEntityPicker(
+          "tap_action_entity",
+          t("actionArea", "def_entity"),
+          `devices.${box}.tap_action.entity`
+        );
+        ep.value = cfgNow.entity ?? "";
+        row.appendChild(ep);
+        tapFieldsHost.appendChild(row);
+      }
+
+      if (act === "navigate") {
+        const row = document.createElement("div");
+        row.classList.add("row");
+        const tf = mkText(
+          "tap_action_nav",
+          t("actionArea", "nav_path"),
+          `devices.${box}.tap_action.navigation_path`
+        );
+        tf.value = cfgNow.navigation_path ?? "";
+        row.appendChild(tf);
+        tapFieldsHost.appendChild(row);
+      }
+
+      if (act === "call-service") {
+
+		  // -------- ROW 1 : SERVICE FIELD (single field + suggestions) --------
+		  const row1 = document.createElement("div");
+		  row1.classList.add("row");
+		  row1.style.position = "relative";
+
+		  const svc = mkText(
+			"tap_action_service",
+			t("actionArea", "service"),
+			`devices.${box}.tap_action.service`
+		  );
+		  svc.value = cfgNow.service ?? "";
+		  row1.appendChild(svc);
+
+		  // ---- Build service list from hass ----
+		  const hs = hass?.services || {};
+		  const allServices = [];
+
+		  Object.entries(hs).forEach(([domain, srvObj]) => {
+			Object.keys(srvObj || {}).forEach((name) => {
+			  allServices.push(`${domain}.${name}`);
+			});
+		  });
+
+		  allServices.sort((a, b) => a.localeCompare(b));
+
+		  // ---- Suggestions dropdown container ----
+		  const sugg = document.createElement("div");
+		  sugg.style.position = "absolute";
+		  sugg.style.top = "100%";
+		  sugg.style.left = "0";
+		  sugg.style.right = "0";
+		  sugg.style.zIndex = "20";
+		  sugg.style.display = "none";
+		  sugg.style.maxHeight = "240px";
+		  sugg.style.overflow = "auto";
+		  sugg.style.border = "1px solid var(--divider-color)";
+		  sugg.style.background = "var(--card-background-color)";
+		  sugg.style.borderRadius = "8px";
+		  sugg.style.boxShadow = "0 6px 18px rgba(0,0,0,.18)";
+
+		  row1.appendChild(sugg);
+		  tapFieldsHost.appendChild(row1);
+
+		  // ---- Render suggestions ----
+		  const renderSuggestions = (needle) => {
+			const n = (needle || "").toLowerCase().trim();
+
+			if (!n) {
+			  sugg.style.display = "none";
+			  sugg.innerHTML = "";
+			  return;
+			}
+
+			const matches = allServices
+			  .filter((s) => s.toLowerCase().includes(n))
+			  .slice(0, 12);
+
+			if (matches.length === 0) {
+			  sugg.style.display = "none";
+			  sugg.innerHTML = "";
+			  return;
+			}
+
+			sugg.innerHTML = matches
+			  .map((s) =>
+				`<div class="svc-item" data-svc="${s}"
+				  style="padding:8px 10px; cursor:pointer;">
+					${s}
+				</div>`
+			  )
+			  .join("");
+
+			sugg.style.display = "block";
+		  };
+
+		  // ---- Click on suggestion ----
+		  sugg.addEventListener("click", (e) => {
+			const el = e.target.closest(".svc-item");
+			if (!el) return;
+
+			const picked = el.getAttribute("data-svc") || "";
+			if (!picked) return;
+
+			svc.value = picked;
+			sugg.style.display = "none";
+			sugg.innerHTML = "";
+
+			appendTo._config = updateConfigRecursively(
+			  appendTo._config,
+			  `devices.${box}.tap_action.service`,
+			  picked,
+			  true
+			);
+			notifyConfigChange(appendTo);
+		  });
+
+		  // ---- Show suggestions while typing ----
+		  svc.addEventListener("input", () => {
+			renderSuggestions(svc.value);
+		  });
+
+		  // ---- Hide on blur ----
+		  svc.addEventListener("blur", () => {
+			setTimeout(() => {
+			  sugg.style.display = "none";
+			  sugg.innerHTML = "";
+			}, 150);
+		  });
+
+		  // -------- ROW 2 : ENTITY ID --------
+		  const row2 = document.createElement("div");
+		  row2.classList.add("row");
+
+		  const ent = mkEntityPicker(
+			"tap_action_entity_id",
+			t("actionArea", "service_entity"),
+			`devices.${box}.tap_action.entity_id`
+		  );
+		  ent.value = cfgNow.entity_id ?? "";
+
+		  row2.appendChild(ent);
+		  tapFieldsHost.appendChild(row2);
+
+		  // -------- ROW 3 : VALUE --------
+		  const row3 = document.createElement("div");
+		  row3.classList.add("row");
+
+		  const val = mkText(
+			"tap_action_value",
+			t("actionArea", "service_value"),
+			`devices.${box}.tap_action.value`
+		  );
+		  val.value = (cfgNow.value ?? "").toString();
+
+		  row3.appendChild(val);
+		  tapFieldsHost.appendChild(row3);
+		}
+      // (none / default => no fields)
+
+      // important: attach listeners on newly created inputs
+      attachInputs(appendTo);
+    };
+
+    // initial render fields
+    renderTapFields();
+	
+	if (config?.devices?.[box]?.sensorSignIcon === true) {
+	  signIconSwitch.setAttribute('checked', '');
+	}
+	
+	if (config?.devices?.[box]?.gaugeTexture === true) {
+	  gaugeTextureSwitch?.setAttribute('checked', '');
+	}
 	
 	// code pour recuperer les valeurs pour chaque cote
 	anchorLeft.value = leftQty;
@@ -493,6 +824,32 @@ export function subtabRender(box, config, hass, appendTo) {
 	  notifyConfigChange(appendTo);
 	});
 
+	// --- gauge_wave_entity_form (entité d'activation de la vague)
+	const formGaugeWave = subTabContent.querySelector('#gauge_wave_entity_form');
+	if (formGaugeWave) {
+	  formGaugeWave.hass = hass;
+	  formGaugeWave.computeLabel = () => t("subtabRender", "gauge_wave_entity");
+	  formGaugeWave.schema = [
+		{
+		  name: "gaugeWaveEntity",
+		  required: false,
+		  selector: { entity: {} },
+		},
+	  ];
+	  formGaugeWave.data = { gaugeWaveEntity: config?.devices?.[box]?.gaugeWaveEntity ?? "" };
+
+	  formGaugeWave.addEventListener("value-changed", (e) => {
+		const v = e?.detail?.value || {};
+		appendTo._config = updateConfigRecursively(
+		  appendTo._config,
+		  `${basePath}.gaugeWaveEntity`,
+		  v.gaugeWaveEntity || null,
+		  true
+		);
+		notifyConfigChange(appendTo);
+	  });
+	}
+
 	// --- header_sensor_form
 	const formHeader = subTabContent.querySelector('#header_sensor_form');
 	formHeader.hass = hass;
@@ -532,6 +889,24 @@ export function subtabRender(box, config, hass, appendTo) {
 	  appendTo._config = updateConfigRecursively(appendTo._config, `${basePath}.footerEntity1`, v.footerEntity1 || null, true);
 	  notifyConfigChange(appendTo);
 	});
+	
+	// --- side gauge
+	const formSideGauge = subTabContent.querySelector('#sideGauge_entity_form');
+	formSideGauge.hass = hass;
+	formSideGauge.computeLabel = () => t("subtabRender", "side_gauge_entity");
+	formSideGauge.schema = [{ name: "sideGaugeEntity", required: false, selector: { entity: {} } }];
+	formSideGauge.data = { sideGaugeEntity: config?.devices?.[box]?.sideGaugeEntity ?? "" };
+	formSideGauge.addEventListener("value-changed", (e) => {
+	  const v = e?.detail?.value || {};
+	  appendTo._config = updateConfigRecursively(appendTo._config, `${basePath}.sideGaugeEntity`, v.sideGaugeEntity || null, true);
+	  notifyConfigChange(appendTo);
+	});
+
+	const sideGaugeMaxField = subTabContent.querySelector('#sideGauge_max');
+	const sgMaxVal = config?.devices?.[box]?.sideGaugeMax;
+	if (sideGaugeMaxField) {
+	  sideGaugeMaxField.value = (sgMaxVal !== undefined && sgMaxVal !== null) ? sgMaxVal : "";
+	}
 
 	// --- footer2_sensor_form
 	const formFooter2 = subTabContent.querySelector('#footer2_sensor_form');
@@ -582,8 +957,10 @@ export function subtabRender(box, config, hass, appendTo) {
     if(unit !== '%' ) {
         gaugeSwitch.setAttribute('disabled', '');
         gaugeSwitch.setAttribute("title", t("subtabRender", "warning_gauge"));
+		formGaugeWave.setAttribute('disabled', '');
+		gaugeTextureSwitch.setAttribute('disabled', '');
+        gaugeTextureSwitch.setAttribute("title", t("subtabRender", "warning_gauge"));
     } else if (config.devices?.[box]?.gauge === true) gaugeSwitch.setAttribute('checked', '');
-    
     
     const linkContainer = subTabContent.querySelector('#link-container');
     const addLinkButton = subTabContent.querySelector('#add-link-button');
@@ -598,6 +975,39 @@ export function subtabRender(box, config, hass, appendTo) {
         addLink(linkContainer.children.length+1, box, hass, thisAllAnchors, OtherAllAnchors, appendTo);
     });
     
+	if (tapActionCombo) {
+	  tapActionCombo.addEventListener("selected", () => {
+		const actRaw = tapActionCombo.value ?? "__default__";
+		const act = (actRaw === "__default__") ? "" : actRaw;
+		const base = `devices.${box}.tap_action`;
+
+		// action actuelle (avant modif)
+		const oldAct =
+		  (appendTo._config?.devices?.[box]?.tap_action?.action) ??
+		  (config?.devices?.[box]?.tap_action?.action) ??
+		  "";
+
+		// Si l'utilisateur re-sélectionne la même action -> on ne wipe pas
+		if (act === oldAct) return;
+
+		if (!act) {
+		  // Default => supprimer tout tap_action
+		  appendTo._config = updateConfigRecursively(appendTo._config, base, null, true);
+		} else {
+		  // Set action
+		  appendTo._config = updateConfigRecursively(appendTo._config, `${base}.action`, act, true);
+
+		  // wipe champs (car l'action a changé)
+		  ["entity", "navigation_path", "service", "entity_id", "value"].forEach((k) => {
+			appendTo._config = updateConfigRecursively(appendTo._config, `${base}.${k}`, null, true);
+		  });
+		}
+
+		notifyConfigChange(appendTo);
+		renderTapFields();
+	  });
+	}
+	
     function trackExpansionState() {
     subTabContent.querySelectorAll("ha-expansion-panel").forEach(panel => {
             panel.addEventListener("expanded-changed", (event) => {

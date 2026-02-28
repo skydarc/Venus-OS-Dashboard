@@ -1,18 +1,32 @@
-export let pathControls = new Map();
-
+/*export let pathControls = new Map();
 export let directionControls = new Map();
-
 export let intervals = new Map();
-
 export let historicData = new Map();
+export let updateGraphTriggers = new Map();*/
 
-export let updateGraphTriggers = new Map();
+const instanceState = new WeakMap();
 
-let dashboardOldWidth;
+function getState(appendTo) {
+  let s = instanceState.get(appendTo);
 
-let mustRedrawLine = true;
+  if (!s) {
+    s = {
+      dashboardOldWidth: undefined,
+      mustRedrawLine: true,
+      editorOpen: false,
 
-let editorOpen = false;
+      // Maps par instance
+      pathControls: new Map(),
+      directionControls: new Map(),
+      intervals: new Map(),
+      historicData: new Map(),
+      updateGraphTriggers: new Map(),
+    };
+    instanceState.set(appendTo, s);
+  }
+
+  return s;
+}
 
 /************************************************/
 /* fonction de rendu du squelette de la carte : */
@@ -51,7 +65,11 @@ export function baseRender(config, appendTo) {
 /* fonction de creation des box : */
 /* qty par col                    */
 /**********************************/
-export function addBox(col1, col2, col3, appendTo) {
+export function addBox(col1, col2, col3, config, appendTo) {
+	
+	const maxHeightRaw = config?.param?.maxHeigth;
+	const maxHeight = Number(maxHeightRaw);
+	const useMaxHeight = Number.isFinite(maxHeight);
     
     const boxCounts = [col1, col2, col3];
     
@@ -76,10 +94,23 @@ export function addBox(col1, col2, col3, appendTo) {
                 gauge.id = `gauge_${columnIndex + 1}-${i}`;
                 gauge.className = 'gauge';
                 gauge.style.height = `0px`;
+				
+				const sideGauge = document.createElement('div');
+				sideGauge.id = `sideGauge_${columnIndex + 1}-${i}`;
+				sideGauge.className = 'sideGauge';
+
+				const sideGaugeFill = document.createElement('div');
+				sideGaugeFill.id = `sideGaugeFill_${columnIndex + 1}-${i}`;
+				sideGaugeFill.className = 'sideGaugeFill';
+				sideGauge.appendChild(sideGaugeFill);
                 
                 const box = document.createElement('div'); // Crée un nouvel élément div
                 box.id = `box_${columnIndex + 1}-${i}`; // Définit l'id de la box
                 box.className = 'box'; // Applique la classe 'box'
+				if (useMaxHeight) {
+					box.style.maxHeight = `${maxHeight}%`;
+				}
+				box.appendChild(sideGauge);
                 box.appendChild(graph);
                 box.appendChild(gauge);
                 box.appendChild(content);
@@ -177,15 +208,20 @@ export function fillBox(config, styles, isDark, hass, appendTo) {
     	}
             
         const device = devices[boxId];
-            
+		
+		const box = appendTo.querySelector(`#dashboard > #column-${boxId[0]} > #box_${boxId}`);
+		const divSideGauge = appendTo.querySelector(`#dashboard > #column-${boxId[0]} > #box_${boxId} > #sideGauge_${boxId}`);
+		const divSideGaugeFill = appendTo.querySelector(`#dashboard > #column-${boxId[0]} > #box_${boxId} > #sideGauge_${boxId} > #sideGaugeFill_${boxId}`);
+		const sensorSignIconEnabled = device.sensorSignIcon === true;		  
         const divGraph = appendTo.querySelector(`#dashboard > #column-${boxId[0]} > #box_${boxId} > #graph_${boxId}`);
         const divGauge = appendTo.querySelector(`#dashboard > #column-${boxId[0]} > #box_${boxId} > #gauge_${boxId}`);
         const innerContent = appendTo.querySelector(`#dashboard > #column-${boxId[0]} > #box_${boxId} > #content_${boxId}`);
                 
         let state = hass.states[device.entity];
+		let sensor1Prefix = "";
         let value = state ? state.state : 'N/C';
         let unit = state && state.attributes.unit_of_measurement ? state.attributes.unit_of_measurement : '';
-            
+        
         let addGauge = "";
         let addHeaderEntity = "";
         let addEntity2 = "";
@@ -197,8 +233,38 @@ export function fillBox(config, styles, isDark, hass, appendTo) {
         
         if(device.graph) creatGraph(boxId, device, isDark, appendTo);
         
-        if(device.gauge) divGauge.style.height = value + `%`;
-        else divGauge.style.height = `0px`;
+        // Gauge visible seulement si la valeur est en % + option gauge activée
+		const gaugeEnabled = (device.gauge === true || device.gauge === "true") && unit === "%";
+
+		if (gaugeEnabled) {
+		  divGauge.style.height = `${value}%`;
+		  
+		  // Texture toggle
+		  if (device.gaugeTexture === true || device.gaugeTexture === "true")
+			divGauge.classList.add("gaugeTexture");
+		  else
+			divGauge.classList.remove("gaugeTexture");
+
+		  // Vague: uniquement si une entité "activateur" est définie et indique "charge"
+		  // (clé YAML à ajouter plus tard : devices.X-Y.gaugeWaveEntity)
+		  const waveEntity = (device.gaugeWaveEntity || "").trim();
+
+		  if (waveEntity) {
+			const stWave = hass.states?.[waveEntity];
+			const vWave = Number.parseFloat(stWave?.state);
+
+			// Charge = vWave > 0 (par défaut). Si chez toi c'est l'inverse, on basculera en < 0.
+			if (Number.isFinite(vWave) && vWave > 0) divGauge.classList.add("chargeWave");
+			else divGauge.classList.remove("chargeWave");
+		  } else {
+			divGauge.classList.remove("chargeWave");
+		  }
+
+		} else {
+		  divGauge.style.height = `0px`;
+		  divGauge.classList.remove("chargeWave");
+		  divGauge.classList.remove("gaugeTexture");
+		}
             
         if(styles.header != "") {
             if(styles.header == "auto") {
@@ -215,7 +281,24 @@ export function fillBox(config, styles, isDark, hass, appendTo) {
             }
         } 
         
-        if(styles.sensor != "") {
+        if(sensorSignIconEnabled) {
+		  const vNum = Number.parseFloat(value);
+
+		  if (Number.isFinite(vNum)) {
+			// Valeur sans signe (garde 0 tel quel)
+			value = String(Math.abs(vNum));
+
+			if (vNum > 0) {
+			  // bleu vers gauche
+			  sensor1Prefix = `<span class="signIcon signIconPos" aria-hidden="true"></span>`;
+			} else if (vNum < 0) {
+			  // vert vers droite
+			  sensor1Prefix = `<span class="signIcon signIconNeg" aria-hidden="true"></span>`;
+			}
+		  }
+		}
+			
+		if(styles.sensor != "") {
             if(styles.sensor == "auto") {
                     
                 let dynSizeSensor = "";
@@ -303,18 +386,69 @@ export function fillBox(config, styles, isDark, hass, appendTo) {
             `;
         }
             
-        innerContent.innerHTML = `
+        // --- Side gauge (optionnel, seulement si entity définie) ---
+		const sgEntity = (device.sideGaugeEntity || "").trim();
+		const sgMax = Number(device.sideGaugeMax);
+
+		let showSideGauge = false;
+
+		if (sgEntity && divSideGauge && divSideGaugeFill) {
+		  // si entity est définie, on tente d'afficher
+		  if (Number.isFinite(sgMax) && sgMax > 0) {
+			const stSg = hass.states?.[sgEntity];
+			const vSg = Number.parseFloat(stSg?.state);
+
+			if (Number.isFinite(vSg)) {
+			  const pct = Math.max(0, Math.min(100, (Math.abs(vSg) / sgMax) * 100));
+			  divSideGaugeFill.style.height = `${pct}%`;
+			  
+			  // reset classes
+			  divSideGaugeFill.classList.remove("sg-blue", "sg-orange", "sg-red","sg-green");
+			  divSideGauge.classList.remove("sg-blue","sg-orange","sg-red","sg-green");
+			  
+			  let colorClass;
+
+			  if (vSg < 0) {
+				colorClass = "sg-green";
+			  } else if (pct >= 90) {
+				colorClass = "sg-red";
+			  } else if (pct >= 70) {
+				colorClass = "sg-orange";
+			  } else {
+				colorClass = "sg-blue";
+			  }
+
+			divSideGaugeFill.classList.add(colorClass);
+			divSideGauge.classList.add(colorClass);
+			  
+			  showSideGauge = true;
+			} else {
+			  // entity définie mais pas numérique => on masque
+			  showSideGauge = false;
+			}
+		  } else {
+			// entity définie mais max absent => on masque
+			showSideGauge = false;
+		  }
+		}
+
+		// Affichage final : uniquement si entity définie + calcul OK
+		if (divSideGauge) {
+		  divSideGauge.style.display = showSideGauge ? "" : "none";
+		}
+		
+		innerContent.innerHTML = `
             <div class="boxHeader"${addHeaderStyle}>
                 <ha-icon icon="${device.icon}" class="boxIcon"></ha-icon>
                 <div class="boxTitle">${device.name}</div>
                 ${addHeaderEntity}
             </div>
-            <div class="boxSensor1"${addSensorStyle}>${value}<div class="boxUnit">${unit}</div></div>
+            <div class="boxSensor1"${addSensorStyle}>${sensor1Prefix} ${value}<div class="boxUnit">${unit}</div></div>
             ${addEntity2}
             ${addFooter}
         `;
         
-        if (!innerContent.dataset.listener) {
+        /*if (!innerContent.dataset.listener) {
             innerContent.dataset.listener = "true"; // Marque comme ayant un listener
         
             innerContent.addEventListener('click', () => {
@@ -325,16 +459,181 @@ export function fillBox(config, styles, isDark, hass, appendTo) {
                 event.detail = { entityId }; // Passer l'entité à afficher
                 innerContent.dispatchEvent(event);
             });
+        }*/
+		if (!box.dataset.listener) {
+          box.dataset.listener = "true";
+
+          // ---------- helpers ----------
+          const fireMoreInfo = (entityId) => {
+            const ev = new Event("hass-more-info", { bubbles: true, composed: true });
+            ev.detail = { entityId };
+            box.dispatchEvent(ev);
+          };
+
+          const doNavigate = (path) => {
+            if (!path) return;
+            history.pushState(null, "", path);
+            window.dispatchEvent(new Event("location-changed"));
+          };
+
+          const doUrl = (url) => {
+            if (!url) return;
+            window.open(url, "_blank");
+          };
+
+          const doCallService = async (svc, data) => {
+            if (!svc || !hass?.callService) return;
+
+			const parts = String(svc).split(".");
+			if (parts.length !== 2) return;
+
+			const [domain, service] = parts;
+
+			try {
+			  await hass.callService(domain, service, data || {});
+			} catch (e) {
+			  console.warn("call-service failed", svc, e);
+			}
+          };
+
+          const doToggle = async (entityId) => {
+            if (!entityId) return;
+            // toggle via service homeassistant.toggle
+            await doCallService("homeassistant.toggle", { entity_id: entityId }, {});
+          };
+
+          const runAction = async (actionCfg, fallbackEntity) => {
+            const cfg = actionCfg || { action: "more-info" };
+            const act = cfg.action || "more-info";
+
+            if (act === "none") return;
+
+            if (act === "more-info") {
+              fireMoreInfo(cfg.entity || fallbackEntity);
+              return;
+            }
+
+            if (act === "navigate") {
+              doNavigate(cfg.navigation_path);
+              return;
+            }
+
+            if (act === "url") {
+              doUrl(cfg.url_path);
+              return;
+            }
+
+            if (act === "call-service") {
+			  const payload = {};
+
+			  if (cfg.entity_id) {
+				payload.entity_id = cfg.entity_id;
+			  }
+
+			  if (cfg.value !== undefined) {
+				payload.value = cfg.value;
+			  }
+
+			  await doCallService(cfg.service, payload);
+			  return;
+			}
+
+            if (act === "toggle") {
+              await doToggle(cfg.entity || fallbackEntity);
+              return;
+            }
+
+            // fallback sécurité
+            fireMoreInfo(fallbackEntity);
+          };
+
+          // ---------- gesture handling ----------
+          // Hold: long press
+          const HOLD_MS = 500;
+
+          let holdTimer = null;
+          let holdFired = false;
+
+          // Tap / double tap
+          // On ignore le click si hold a déjà déclenché
+          box.addEventListener("pointerdown", () => {
+            holdFired = false;
+            clearTimeout(holdTimer);
+
+            holdTimer = setTimeout(async () => {
+              holdFired = true;
+              const entityId = device.entity;
+
+              const holdCfg = device.hold_action || null;
+              await runAction(holdCfg, entityId);
+            }, HOLD_MS);
+          });
+
+          box.addEventListener("pointerup", () => {
+            clearTimeout(holdTimer);
+          });
+
+          box.addEventListener("pointerleave", () => {
+            clearTimeout(holdTimer);
+          });
+
+          // Double tap
+          box.addEventListener("dblclick", async (e) => {
+            e.preventDefault();
+            clearTimeout(holdTimer);
+            if (holdFired) return;
+
+            const entityId = device.entity;
+            const dblCfg = device.double_tap_action || null;
+
+            // Si double_tap absent => on laisse le tap gérer (donc rien ici)
+            if (!dblCfg) return;
+
+            await runAction(dblCfg, entityId);
+          });
+
+          // Tap simple
+          box.addEventListener("click", async () => {
+            clearTimeout(holdTimer);
+            if (holdFired) return;
+
+            const entityId = device.entity;
+
+            // Si double_tap_action existe, on évite que le click simple parte
+            // lors d’un double click : le navigateur déclenche click+click+dblclick.
+            // Donc on retarde un poil le tap pour laisser dblclick gagner.
+            const hasDbl = !!device.double_tap_action;
+
+            const tapCfg = device.tap_action || null;
+
+            if (!hasDbl) {
+              // tap immédiat
+              await runAction(tapCfg, entityId);
+              return;
+            }
+
+            // tap retardé pour laisser dblclick annuler
+            let cancelled = false;
+            const cancel = () => { cancelled = true; };
+            box.addEventListener("dblclick", cancel, { once: true });
+
+            setTimeout(async () => {
+              if (cancelled || holdFired) return;
+              await runAction(tapCfg, entityId);
+            }, 220);
+          });
         }
     }
 }
 
 function creatGraph (boxId, device, isDark, appendTo) {
+	
+	const st = getState(appendTo);
     
-    if(!updateGraphTriggers.get(device.entity)) return;
+    if(!st.updateGraphTriggers.get(device.entity)) return;
     
     const divGraph = appendTo.querySelector(`#dashboard > #column-${boxId[0]} > #box_${boxId} > #graph_${boxId}`);
-    const data = historicData.get(device.entity);
+    const data = st.historicData.get(device.entity);
     
     if (!data || data.length === 0) {
         console.warn(`Aucune donnée pour l'entité ${device.entity}.`);
@@ -344,7 +643,7 @@ function creatGraph (boxId, device, isDark, appendTo) {
     //console.log(data);
     if (!data || data.length === 0) {
         console.warn(`Données non disponibles pour ${device.entity}.`);
-        updateGraphTriggers.set(device.entity, false); // Désactiver temporairement le trigger
+        st.updateGraphTriggers.set(device.entity, false); // Désactiver temporairement le trigger
         return;
     }
     
@@ -362,7 +661,7 @@ function creatGraph (boxId, device, isDark, appendTo) {
         </svg>
     `;
 
-    updateGraphTriggers.set(device.entity, false);
+    st.updateGraphTriggers.set(device.entity, false);
 }
 
 function generatePath(data, svgWidth = 500, svgHeight = 100) {
@@ -456,12 +755,14 @@ function simplifyPath(points, tolerance) {
 /* fonction addLine (donc a la premiere boucle aussi) */
 /******************************************************/
 export function checkReSize(devices, isDarkTheme, appendTo) {
+	
+	const st = getState(appendTo);
     
     // recuperation de la taille de la carte pour recalcul des path si necessaire
     const rect = appendTo.querySelector(`#dashboard`).getBoundingClientRect();
     
     // si largeur differente de precedemment : recalcul
-    if(dashboardOldWidth != rect.width) {
+    if(st.dashboardOldWidth != rect.width) {
         
         // conteneur des path et des circles
         const pathContainer = appendTo.querySelector(`#dashboard > #svg_container > #path_container`);
@@ -479,25 +780,25 @@ export function checkReSize(devices, isDarkTheme, appendTo) {
                 const hasInert = homeAssistantMain.hasAttribute('inert');
                     
                 // different cas...
-                if (mustRedrawLine) { // suite a une mise a jour du yaml
+                if (st.mustRedrawLine) { // suite a une mise a jour du yaml
                         
                     pathContainer.innerHTML = "";
 					if (circContainer) circContainer.innerHTML = "";
                     addLine(devices, isDarkTheme, appendTo);
                         
-                } else if(hasInert && !editorOpen) { // premiere boucle a l'ouverture de l'editeur
+                } else if(hasInert && !st.editorOpen) { // premiere boucle a l'ouverture de l'editeur
 
-                    editorOpen = true;
+                    st.editorOpen = true;
                         
                     pathContainer.innerHTML = "";
 					if (circContainer) circContainer.innerHTML = "";
                     addLine(devices, isDarkTheme, appendTo);
                         
-                } else if (hasInert && editorOpen) { // boucles suivantes apres premiere ouverture de l'editeur... plus de mise à jour
+                } else if (hasInert && st.editorOpen) { // boucles suivantes apres premiere ouverture de l'editeur... plus de mise à jour
                         
-                } else if (!hasInert && editorOpen) {
+                } else if (!hasInert && st.editorOpen) {
                         
-                    editorOpen = false;
+                    st.editorOpen = false;
 
                     pathContainer.innerHTML = "";
 					if (circContainer) circContainer.innerHTML = "";
@@ -511,7 +812,7 @@ export function checkReSize(devices, isDarkTheme, appendTo) {
                         
                 }
                 
-                mustRedrawLine = false;
+                st.mustRedrawLine = false;
                 return; // Arrête la boucle
             }
         
@@ -525,11 +826,12 @@ export function checkReSize(devices, isDarkTheme, appendTo) {
     }
         
     // mise à jour de la largeur de la carte dans la variable globale pour comparaison au tour suivant
-    dashboardOldWidth = rect.width;
+    st.dashboardOldWidth = rect.width;
 }
 
-export function razDashboardOldWidth() {
-    mustRedrawLine = true;
+export function razDashboardOldWidth(appendTo) {
+  const st = getState(appendTo);
+  st.mustRedrawLine = true;
 }
 
 /********************************************************/
@@ -833,36 +1135,26 @@ function creatLine(anchorId1, anchorId2, direction_init, isDarkTheme, appendTo) 
 	const spacingPx = 45;                    // distance entre balles
 	const ballCount = Math.max(1, Math.floor(pathLength / spacingPx));
 
+	// Rayon des balles
+	const ballRadius = 4;
+
 	// Créer les cercles
-	const drops = [];
+	const circles = [];
 	for (let i = 0; i < ballCount; i++) {
-
-	  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-	  g.setAttribute("class", "drop");
-	  circContainer.appendChild(g);
-
-	  // halo (plus grand + plus transparent)
-	  const halo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-	  halo.setAttribute("r", "6");
-	  halo.setAttribute("class", "ball ball-halo");
-	  halo.setAttribute("fill", isDarkTheme ? "rgba(255,255,255,0.25)" : "rgba(0,0,255,0.25)");
-	  g.appendChild(halo);
-
-	  // core (gradient)
-	  const core = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-	  core.setAttribute("r", "4");
-	  core.setAttribute("class", "ball ball-core");
-	  core.setAttribute("fill", isDarkTheme ? "url(#gradientDark)" : "url(#gradientLight)");
-	  g.appendChild(core);
-
-	  drops.push(g);
+	  const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+	  c.setAttribute("r", String(ballRadius));
+	  c.setAttribute("class", "ball");
+	  c.setAttribute("fill", isDarkTheme ? "url(#gradientDark)" : "url(#gradientLight)");
+	  circContainer.appendChild(c);
+	  circles.push(c);
 	}
 
 	// Stocker direction + lancer animation
-	directionControls.set(anchorId1, direction_init);
+	const st = getState(appendTo);
+	st.directionControls.set(anchorId1, direction_init);
 
-	const controls = animateBallsAlongPath(anchorId1, path, drops, appendTo);
-	pathControls.set(anchorId1, controls);
+	const controls = animateBallsAlongPath(anchorId1, path, circles, appendTo);
+	st.pathControls.set(anchorId1, controls);
 }
 
 /*********************************************************/
@@ -905,8 +1197,11 @@ function getAnchorCoordinates(anchorId, appendTo) {
 /* circle, le path pour le deplacement du circle, et le circle à  */
 /* deplacer                                                       */
 /******************************************************************/
-function animateBallsAlongPath(anchorId1, path, drops, appendTo) {
-  let direction = directionControls.get(anchorId1) ?? 1;
+function animateBallsAlongPath(anchorId1, path, circles, appendTo) {
+  
+  const st = getState(appendTo);
+	
+  let direction = st.directionControls.get(anchorId1) ?? 1;
 
   const pathLength = path.getTotalLength();
 
@@ -927,26 +1222,24 @@ function animateBallsAlongPath(anchorId1, path, drops, appendTo) {
 
     // direction
     const dir = direction;
-    const n = drops.length;
+    const n = circles.length;
 
-	for (let i = 0; i < n; i++) {
-	  let p = base + i / n;
-	  p = p % 1;
+    for (let i = 0; i < n; i++) {
+      let p = base + i / n;   // déphasage => plusieurs balles
+      p = p % 1;
 
-	  if (dir === -1) p = 1 - p;
+      if (dir === -1) p = 1 - p;
+      if (dir === 0) {
+        circles[i].style.display = "none";
+        continue;
+      } else {
+        circles[i].style.display = "";
+      }
 
-	  if (dir === 0) {
-		drops[i].style.display = "none";
-		continue;
-	  } else {
-		drops[i].style.display = "";
-	  }
-
-	  const pt = path.getPointAtLength(p * pathLength);
-
-	  // on déplace le groupe => halo + core restent superposés
-	  drops[i].setAttribute("transform", `translate(${pt.x},${pt.y})`);
-	}
+      const pt = path.getPointAtLength(p * pathLength);
+      circles[i].setAttribute("cx", pt.x);
+      circles[i].setAttribute("cy", pt.y);
+    }
 
     rafId = requestAnimationFrame(frame);
   }
@@ -954,7 +1247,8 @@ function animateBallsAlongPath(anchorId1, path, drops, appendTo) {
   rafId = requestAnimationFrame(frame);
 
   function reverse(cmd) {
-    const init = directionControls.get(anchorId1) ?? 1;
+	const st = getState(appendTo);
+    const init = st.directionControls.get(anchorId1) ?? 1;
     direction = init * cmd; // -1,0,+1
   }
 
@@ -972,7 +1266,9 @@ function animateBallsAlongPath(anchorId1, path, drops, appendTo) {
 /* verifie la valeur de l'entité et change le sens si */
 /* necessaire                                         */
 /******************************************************/
-export function checkForReverse(config, hass) {
+export function checkForReverse(config, hass, appendTo) {
+	
+  const st = getState(appendTo);
 	
   const devices = config?.devices || {};
 
@@ -987,7 +1283,7 @@ export function checkForReverse(config, hass) {
       if (!link || link === "nolink") continue;
 
       const key = `${boxId}_${link.start}`;
-      const pathControl = pathControls.get(key);
+      const pathControl = st.pathControls.get(key);
       if (!pathControl || typeof pathControl.reverse !== "function") continue;
 
       const stateObj = hass.states?.[link.entity];
@@ -1032,9 +1328,9 @@ export function checkForReverse(config, hass) {
 /* groupe de fonctions permettant de lancer la recup  */
 /* de l'historique a interval regulier                */
 /******************************************************/
-export async function startPeriodicTask(config, hass) {
+export async function startPeriodicTask(config, hass, appendTo) {
     
-    clearAllIntervals();
+    clearAllIntervals(appendTo);
     
     const devices = config.devices || [];
     
@@ -1053,7 +1349,7 @@ export async function startPeriodicTask(config, hass) {
             
             if (!firstExecutionSuccessful) {
                 console.warn(`La première exécution a échoué pour ${device.entity}. Tâche périodique annulée.`);
-                clearAllIntervals();
+                clearAllIntervals(appendTo);
                 return false; // Ne démarre pas la tâche périodique si la première exécution échoue
             }
             
@@ -1066,19 +1362,23 @@ export async function startPeriodicTask(config, hass) {
             }, intervalMinutes * 60 * 1000);
     
             // Stocker l'intervalle dans la Map
-            intervals.set(device.entity, intervalId);
+            const st = getState(appendTo);
+			st.intervals.set(device.entity, intervalId);
         }
     }
     return true;
 }
 
 export function clearAllIntervals(appendTo) {
+	
+	const st = getState(appendTo);
+	
     // Arrêter toutes les tâches en cours
-    intervals.forEach((intervalId, id) => {
+    st.intervals.forEach((intervalId, id) => {
         clearInterval(intervalId);
         //console.log(`Tâche pour l'entité "${id}" arrêtée.`);
     });
-    intervals.clear();
+    st.intervals.clear();
 }
 
 function performTask(entityId, hass) {
@@ -1086,7 +1386,7 @@ function performTask(entityId, hass) {
     //console.log(`Tâche périodique en cours pour l'entité "${entityId}"...`);
     // Ici tu pourras ajouter la logique de récupération des données
     
-    const historicalData = fetchHistoricalData(entityId, 24, hass); // recup sur 24h
+    const historicalData = fetchHistoricalData(entityId, 24, hass, appendTo); // recup sur 24h
     
     if (historicalData === "false") {
         console.warn(`Impossible de récupérer l'historique pour ${entityId}.`);
@@ -1097,7 +1397,7 @@ function performTask(entityId, hass) {
     return true; // Retourne "true" si tout s'est bien passé
 }
 
-async function fetchHistoricalData(entityId, periodInHours = 24, hass, numSegments = 6) {
+async function fetchHistoricalData(entityId, periodInHours, hass, appendTo, numSegments = 6) {
     const now = new Date();
     const startTime = new Date(now.getTime() - periodInHours * 60 * 60 * 1000); // Période spécifiée
 
@@ -1170,7 +1470,8 @@ async function fetchHistoricalData(entityId, periodInHours = 24, hass, numSegmen
         //console.log(reducedData);
 
         // Étape 4 : Stocker les données réduites
-        historicData.set(
+		const st = getState(appendTo);
+        st.historicData.set(
             entityId,
             reducedData.map((point) => ({
                 time: point.time,
@@ -1178,7 +1479,7 @@ async function fetchHistoricalData(entityId, periodInHours = 24, hass, numSegmen
             }))
         );
         
-        updateGraphTriggers.set(entityId, true);
+        st.updateGraphTriggers.set(entityId, true);
 
         return true;
     } catch (error) {
@@ -1195,6 +1496,7 @@ export const getFirstEntityName = (entities) => {
   const names = getEntityNames(entities);
   return names.length > 0 ? names[0] : "";
 };
+
 
 export function getDefaultConfig(hass) {
       

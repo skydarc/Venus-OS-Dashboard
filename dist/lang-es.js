@@ -5,6 +5,7 @@ port default {
     dark: "Oscuro",
     auto: "Auto",
     devices_per_column: "Número de \"Dispositivos\" por columna:",
+	max_heigth: "Altura máxima de las cajas (%):",
     font_size_zones: "Tamaño de fuente en zonas de \"Dispositivos\":",
     in_header: "en cabecera",
     in_devices: "en dispositivos",
@@ -21,7 +22,16 @@ port default {
     decimals_choice: "Decimales",
     enable_graph: "Activar gráfico",
     enable_gauge: "Activar medidor en %",
+	sensorSignIcon: "Mostrar icono de dirección",
+	gauge_pct_title: "Configuración del indicador principal",
     warning_gauge: "Solo se puede activar si la unidad de medida es %",
+	gauge_wave_entity: "Seleccionar una entidad",
+	enable_gaugeTexture: "Mostrar textura",
+	header_actions_title: "Acciones",
+	header_tap_actions: "Acción \"pulsación corta\"",
+	side_gauge_title: "Configuración del indicador lateral",
+	side_gauge_entity: "Seleccionar una entidad",
+	side_gauge_max: "Valor máximo",
     header_footer_title: "Configuración de sensores de cabecera y pie",
     entity_header: "Seleccionar entidad de cabecera",
     entity_footer: "Seleccionar entidad de pie",
@@ -40,6 +50,21 @@ port default {
     end: "Fin",
     entity_picker: "Seleccionar entidad",
     reverse: "Inverso",
-	threshold: "Límite"
+	threshold: "Umbral"
+  },
+  typeAction: {
+    def: "Predeterminado (más información)",
+    info: "Más información",
+    nav: "Navegación",
+    tgl: "Alternar",
+    srv: "Llamar servicio",
+    none: "Ninguna"
+  },
+  actionArea: {
+    def_entity: "Entidad (opcional)",
+    nav_path: "Ruta de navegación",
+    service: "Servicio (domain.service)",
+    service_entity: "ID de entidad",
+    service_value: "Valor (opcional)"
   }
 };

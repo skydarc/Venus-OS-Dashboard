@@ -35,8 +35,7 @@ class venusOsDashboardCard extends HTMLElement {
 
     // Écouter l'événement personnalisé
     document.addEventListener('config-changed', (event) => {
-      // if(event.detail.redrawRequired) libVenus.razDashboardOldWidth();
-      libVenus.razDashboardOldWidth();
+      libVenus.razDashboardOldWidth(this.content);
     });
 
   }
@@ -82,7 +81,7 @@ class venusOsDashboardCard extends HTMLElement {
     const boxCol3 = param.boxCol3 ? Math.min(Math.max(param.boxCol3, 1), 4) : 1;
 
     // ajout des box
-    if (this.config.demo !== true) libVenus.addBox(boxCol1, boxCol2, boxCol3, this.content);
+    if (this.config.demo !== true) libVenus.addBox(boxCol1, boxCol2, boxCol3, this.config, this.content);
 
     // ajout des ancres d'attache des lignes
     if (this.config.demo !== true) libVenus.addAnchors(this.config, this.content);
@@ -131,12 +130,12 @@ class venusOsDashboardCard extends HTMLElement {
     libVenus.checkReSize(devices, venusOsDashboardCard.isDark, this.content);
 
     // verification des valeurs pour inversion de l'anim path
-    libVenus.checkForReverse(this.config, hass);
+    libVenus.checkForReverse(this.config, hass, this.content);
 
     // Lancement initial de startPeriodicTask
     if (!this.periodicTaskStarted) {
       // console.log('Tentative de démarrage de startPeriodicTask...');
-      const taskStarted = libVenus.startPeriodicTask(this.config, hass);
+      const taskStarted = libVenus.startPeriodicTask(this.config, hass, this.content);
 
       if (taskStarted) {
         // console.log('startPeriodicTask démarré avec succès.');
@@ -175,7 +174,7 @@ class venusOsDashboardCard extends HTMLElement {
 
   // Fonction de nettoyage si la carte est retirée
   disconnectedCallback() {
-    libVenus.clearAllIntervals(); // Arrêter toutes les tâches
+    libVenus.clearAllIntervals(this.content); // Arrêter toutes les tâches
   }
 
 }
