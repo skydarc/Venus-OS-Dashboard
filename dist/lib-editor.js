@@ -955,13 +955,20 @@ export function subtabRender(box, config, hass, appendTo) {
     const unit = entity?.attributes?.unit_of_measurement;
 
     if(unit !== '%' ) {
+		
+		const gaugePanel = subTabContent.querySelector("#subPanel_gaugePct");
+		gaugePanel?.classList.add("disabled-section");
+		
         gaugeSwitch.setAttribute('disabled', '');
         gaugeSwitch.setAttribute("title", t("subtabRender", "warning_gauge"));
 		formGaugeWave.setAttribute('disabled', '');
 		gaugeTextureSwitch.setAttribute('disabled', '');
         gaugeTextureSwitch.setAttribute("title", t("subtabRender", "warning_gauge"));
-    } else if (config.devices?.[box]?.gauge === true) gaugeSwitch.setAttribute('checked', '');
-    
+    } else if (config.devices?.[box]?.gauge === true) {
+		
+		gaugePanel?.classList.remove("disabled-section");
+		gaugeSwitch.setAttribute('checked', '');
+    }
     const linkContainer = subTabContent.querySelector('#link-container');
     const addLinkButton = subTabContent.querySelector('#add-link-button');
     

@@ -94,6 +94,11 @@ export function css(user) {
             .noGap {
                 gap: 0;
             }
+			
+			.disabled-section {
+				opacity: 0.5;
+				pointer-events: none;
+			}
             
   `
     return css;
