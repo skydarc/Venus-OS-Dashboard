@@ -3,7 +3,7 @@
 
 ![venus](assets/preview1.gif)
 
-![Overview](assets/preview2.png)
+![venus](assets/preview2.png)
 
 ## **What is Venus OS Dashboard ?**
 
@@ -21,6 +21,8 @@ Venus OS Dashboard is a card that replicates the look and feel of the Venus OS G
 -   🌓 Supports both light and dark themes
 -   🌎 Internationalization :
       FR | EN | IT | ES | PT | DE | NL | RU | PL | TR | AR
+
+  (maybe some lang files are not perfect, don't hesitate to push coorections).
 
 ---
 
@@ -112,6 +114,89 @@ The animationThreshold parameter controls (for each link) when the animated ball
 - No Default value: If not set, no threshold. 
 - Unit same as value entity.
 - Works with both positive and negative values (grid import/export, battery charge/discharge)
+
+### New box max heigth
+
+I have reintroduce the capacity to set box's max heigth. So you can have only one box with bottom anchors like first version of this card.
+
+![venus](assets/preview3.png)
+
+### signe +/- icon replacement
+
+As Venus-OS, you can replace the +/- with a little arrow. this one will indicate the way of power/cuurent with direction and color.
+
+### New side gauge
+
+Again, as Venus-OS, you can add a little gauge on the right side of any box. 
+
+![venus](assets/preview4.png)
+
+This one is set with specific parameter :
+
+![venus](assets/preview5.png)
+
+give one entity and this maximum value... and voilà!!!
+
+### New gauge gestion with specific ha-expansion-panel
+
+![venus](assets/preview6.png)
+
+here, you will control aspect of main gauge as add old texture patern : (for those that want follow level of water tank for example)
+
+![venus](assets/preview7.png)
+
+Or add wave animation like Venus-OS when the "tank" is "en cours de remplissage":
+
+![venus](assets/preview2.gif)
+
+### New action menu
+
+With this new ha-expension-panel, you can set the action on box.
+
+![venus](assets/preview8.png)
+
+In UI Editor, only "tap" action is avaiable, but technicly, the yaml can support "hold" and "double tap".
+
+So action support:
+
+ - Default (give information of main sensor),
+ - More info, give information of any entity set in the picker entity,
+ - Navigation, load the ha panel with "Navigation Path". This one don't have facility in the picker. But it's pretty easy to have le "navigation path". It's the second part of the url, after the "pi:port" couple.
+   ex.: http://192.168.x.x:8123/energy -> "/energy" is the path
+ - Toggle the entity set in the picker,
+ - Service call, give the ability to launch any service, script macro etc. ,
+ - None... disable the action on box,
+
+ some exemples in yaml :
+
+```yaml
+      tap_action:
+        action: more-info
+        entity: sensor.venus_os_grid_current
+```
+```yaml
+      hold_action:
+        action: navigate
+        navigation_path: /energy
+```
+```yaml
+      tap_action:
+        action: toggle
+        entity: switch.venus_os_allow_max_charge_voltage
+```
+```yaml
+      tap_action:
+        action: call-service
+        service: script.turn_on
+        entity_id: script.victron_force_bulk
+```
+```yaml
+      double_tap_action:
+        action: call-service
+        service: number.set_value
+        entity_id: number.venus_os_ac_current_limit
+        value: 3
+```
 
 ### devices (required)
 
