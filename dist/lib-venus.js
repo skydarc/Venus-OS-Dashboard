@@ -1,8 +1,3 @@
-/*export let pathControls = new Map();
-export let directionControls = new Map();
-export let intervals = new Map();
-export let historicData = new Map();
-export let updateGraphTriggers = new Map();*/
 
 const instanceState = new WeakMap();
 
@@ -1345,7 +1340,7 @@ export async function startPeriodicTask(config, hass, appendTo) {
             //console.log(`Tentative de démarrage de la tâche périodique pour ${device.entity}. Intervalle : ${intervalMinutes} minutes.`);
             
             // Vérifie si la première exécution réussit
-            const firstExecutionSuccessful = await performTask(device.entity, hass);
+            const firstExecutionSuccessful = await performTask(device.entity, hass, appendTo);
             
             if (!firstExecutionSuccessful) {
                 console.warn(`La première exécution a échoué pour ${device.entity}. Tâche périodique annulée.`);
@@ -1358,7 +1353,7 @@ export async function startPeriodicTask(config, hass, appendTo) {
             
             // Planifier la tâche périodique pour cette entité
             const intervalId = setInterval(() => {
-                performTask(device.entity, hass);
+                performTask(device.entity, hass, appendTo);
             }, intervalMinutes * 60 * 1000);
     
             // Stocker l'intervalle dans la Map
@@ -1381,7 +1376,7 @@ export function clearAllIntervals(appendTo) {
     st.intervals.clear();
 }
 
-function performTask(entityId, hass) {
+function performTask(entityId, hass, appendTo) {
     // Fonction à exécuter périodiquement pour chaque entité
     //console.log(`Tâche périodique en cours pour l'entité "${entityId}"...`);
     // Ici tu pourras ajouter la logique de récupération des données
@@ -1566,7 +1561,7 @@ export function getDefaultConfig(hass) {
                 link: {
                     "1":{
                         start: "R-1",
-                        end: "2-1_B-1",
+                        end: "2-1_L-2",
                         entity: firstCurrentEntity ?? "",
                     },
                 },
@@ -1574,7 +1569,7 @@ export function getDefaultConfig(hass) {
             "2-1": {
                 icon: "mdi:cellphone-charging",
                 name: "Multiplus",
-                anchors: "L-1, B-2, R-1",
+                anchors: "L-2, R-2",
             },
             "3-1": {
                 icon: "mdi:home-lightning-bolt",
@@ -1596,7 +1591,7 @@ export function getDefaultConfig(hass) {
                 link: {
                     "1":{
                         start: "L-1",
-                        end: "2-1_B-2",
+                        end: "2-1_R-2",
                         entity: firstSolarPowerEntity ?? "",
                         inv: "true",
                     },
