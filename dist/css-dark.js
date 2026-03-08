@@ -231,6 +231,28 @@ export function cssDataDark(user) {
 			/*border-radius: 0 0 5px 5px;*/
 		}
 		
+		.graph-label {
+            position: absolute;
+            left: 6px;
+            padding: 1px 4px;
+            border-radius: 999px;
+        
+            font-size: 0.6em;
+            font-weight: 600;
+        
+            background: color-mix(in srgb, var(--line-color) 50%, transparent);
+            border: 1px solid color-mix(in srgb, #ffffff 50%, transparent);
+
+        }
+        
+        .graph-max {
+            top: 4px;
+        }
+        
+        .graph-min {
+            bottom: 4px;
+        }
+		
 		.gauge {
 			position: absolute;
 			left: 0px;

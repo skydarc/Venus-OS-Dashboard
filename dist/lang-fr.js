@@ -20,6 +20,8 @@ export default {
     entity_choice: "Choisir une entité",
     entity2_choice: "Choisir une entité secondaire",
     enable_graph: "Activer de graphique",
+	graph_range: "Durée du graphique (h)",
+	enable_graphMinMax: "Afficher Min / Max",
     enable_gauge: "Afficher la Jauge en %",
 	sensorSignIcon: "Afficher l’icône de direction",
 	gauge_pct_title: "Configuration de la jauge principale",

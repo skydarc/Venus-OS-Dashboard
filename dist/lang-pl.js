@@ -21,6 +21,8 @@ export default {
     entity2_choice: "Wybór encji pomocniczej",
     decimals_choice: "Liczba miejsc po przecinku",
     enable_graph: "Włącz wykres",
+	graph_range: "Czas trwania wykresu (h)",
+	enable_graphMinMax: "Wyświetl min / max",
     enable_gauge: "Włącz wskaźnik w %",
     sensorSignIcon: "Pokaż ikonę kierunku",
 	gauge_pct_title: "Konfiguracja głównego wskaźnika",

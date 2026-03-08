@@ -21,6 +21,8 @@ export default {
     entity2_choice: "Zweite Entitäts-Auswahl",
     decimals_choice: "Dezimalstellen",
     enable_graph: "Grafik aktivieren",
+	graph_range: "Diagrammdauer (Std.)",
+	enable_graphMinMax: "Min. / Max. anzeigen",
     enable_gauge: "Anzeige in % aktivieren",
 	sensorSignIcon: "Richtungssymbol anzeigen",
 	gauge_pct_title: "Konfiguration der Hauptanzeige",

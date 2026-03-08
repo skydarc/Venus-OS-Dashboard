@@ -621,126 +621,158 @@ export function fillBox(config, styles, isDark, hass, appendTo) {
     }
 }
 
-function creatGraph (boxId, device, isDark, appendTo) {
-	
-	const st = getState(appendTo);
-    
-    if(!st.updateGraphTriggers.get(device.entity)) return;
-    
-    const divGraph = appendTo.querySelector(`#dashboard > #column-${boxId[0]} > #box_${boxId} > #graph_${boxId}`);
-    const data = st.historicData.get(device.entity);
-    
-    if (!data || data.length === 0) {
-        console.warn(`Aucune donnée pour l'entité ${device.entity}.`);
-        return;
-    }
-    
-    //console.log(data);
-    if (!data || data.length === 0) {
-        console.warn(`Données non disponibles pour ${device.entity}.`);
-        st.updateGraphTriggers.set(device.entity, false); // Désactiver temporairement le trigger
-        return;
-    }
-    
-    // Générer le path SVG
-    const pathD = generatePath(data, 500, 99); // Dimensions SVG fixées pour cet exemple
+function creatGraph(boxId, device, isDark, appendTo) {
+  const showMinMax = device.minMaxGraph ?? false;
+  const rangeHours = device.rangeGraph ?? 24;
 
-    let colorPath = "#00000077";
-    if(isDark) {
-        colorPath = "#ffffff77";
-    } 
-    
-    divGraph.innerHTML = `
-        <svg viewBox="0 0 500 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-            <path fill="none" stroke="${colorPath}" stroke-width="3" d="${pathD}" />
-        </svg>
-    `;
+  const st = getState(appendTo);
 
+  if (!st.updateGraphTriggers.get(device.entity)) return;
+
+  const divGraph = appendTo.querySelector(
+    `#dashboard > #column-${boxId[0]} > #box_${boxId} > #graph_${boxId}`
+  );
+  const data = st.historicData.get(device.entity);
+
+  if (!data || data.length === 0) {
+    console.warn(`Aucune donnée pour l'entité ${device.entity}.`);
     st.updateGraphTriggers.set(device.entity, false);
+    return;
+  }
+
+  const g = generatePath(data, 500, 99, rangeHours);
+  if (!g || !g.d) {
+    st.updateGraphTriggers.set(device.entity, false);
+    return;
+  }
+
+  let colorPath = "#00000077";
+  if (isDark) {
+    colorPath = "#ffffff77";
+  }
+
+  divGraph.innerHTML = `
+    <svg viewBox="0 0 500 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+      <path
+        fill="none"
+        stroke="${colorPath}"
+        stroke-width="3"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="${g.d}" />
+    </svg>
+  `;
+
+  if (showMinMax) {
+    const maxText = formatGraphValue(g.max);
+    const minText = formatGraphValue(g.min);
+
+    divGraph.innerHTML += `
+      <div class="graph-label graph-max">${maxText}</div>
+      <div class="graph-label graph-min">${minText}</div>
+    `;
+  }
+
+  st.updateGraphTriggers.set(device.entity, false);
 }
 
-function generatePath(data, svgWidth = 500, svgHeight = 100) {
-    if (!data || data.length === 0) return '';
-
-    // Étape 1 : Calculer min/max pour normalisation
-    const minY = Math.min(...data.map(d => d.value));
-    const maxY = Math.max(...data.map(d => d.value));
-
-    // Étape 2 : Normalisation des points
-    const normalizedData = data.map((d, index) => ({
-        x: (index / (data.length - 1)) * svgWidth, // Répartition uniforme des X
-        y: svgHeight - ((d.value - minY) / (maxY - minY)) * svgHeight, // Normalisation Y inversée (SVG : 0 en haut)
-    }));
-
-    // Étape 3 (optionnel) : Simplification des points
-    //const simplifiedData = simplifyPath(normalizedData, 3); // Tolérance à ajuster
-    const simplifiedData = normalizedData;
-    
-    // Étape 4 : Construction du path
-    let path = `M${simplifiedData[0].x},${simplifiedData[0].y}`; // Point de départ
-    for (let i = 1; i < simplifiedData.length; i++) {
-        const prev = simplifiedData[i - 1];
-        const curr = simplifiedData[i];
-        const midX = (prev.x + curr.x) / 2; // Point médian pour une courbe fluide
-        path += ` Q${prev.x},${prev.y} ${midX},${curr.y}`;
-    }
-    path += ` T${simplifiedData[simplifiedData.length - 1].x},${simplifiedData[simplifiedData.length - 1].y}`; // Dernier point
-
-    return path;
+function formatGraphValue(v) {
+  if (!Number.isFinite(v)) return "";
+  if (Math.abs(v) >= 1000) return (v / 1000).toFixed(1) + "K";
+  return v.toFixed(0);
 }
 
-function simplifyPath(points, tolerance) {
-    if (points.length <= 2) return points; // Pas besoin de simplification si 2 points ou moins
+function buildLinearPath(points) {
+  if (!points || points.length < 2) return "";
+  let d = `M${points[0].x},${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    d += ` L${points[i].x},${points[i].y}`;
+  }
+  return d;
+}
 
-    const sqTolerance = tolerance * tolerance;
+function getPointTimeMs(d) {
+  const s = d.last_changed || d.last_updated || d.start || d.end || d.timestamp || d.time;
+  if (typeof s === "number") return s;
+  if (!s) return null;
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? t : null;
+}
 
-    // Fonction pour calculer la distance au carré d'un point à une ligne
-    function getSqSegmentDistance(p, p1, p2) {
-        let x = p1.x, y = p1.y;
-        let dx = p2.x - x, dy = p2.y - y;
+function smoothSeriesByTime(data, rangeHours = 24, bucketSeconds = 300) {
+  const now = Date.now();
+  const windowMs = rangeHours * 3600 * 1000;
+  const windowStart = now - windowMs;
+  const bucketMs = bucketSeconds * 1000;
 
-        if (dx !== 0 || dy !== 0) {
-            const t = ((p.x - x) * dx + (p.y - y) * dy) / (dx * dx + dy * dy);
-            if (t > 1) {
-                x = p2.x;
-                y = p2.y;
-            } else if (t > 0) {
-                x += dx * t;
-                y += dy * t;
-            }
-        }
+  const pts = [];
 
-        dx = p.x - x;
-        dy = p.y - y;
+  for (const d of data || []) {
+    const v = Number(d.value);
+    if (!Number.isFinite(v)) continue;
 
-        return dx * dx + dy * dy;
+    const t = getPointTimeMs(d);
+    if (t == null) continue;
+    if (t < windowStart || t > now) continue;
+
+    pts.push({ t, v });
+  }
+
+  if (pts.length < 2) return null;
+
+  pts.sort((a, b) => a.t - b.t);
+
+  const buckets = new Map();
+
+  for (const p of pts) {
+    const key = Math.floor(p.t / bucketMs) * bucketMs;
+
+    let b = buckets.get(key);
+    if (!b) {
+      b = { sum: 0, n: 0 };
+      buckets.set(key, b);
     }
 
-    // Fonction récursive principale
-    function simplifyRecursive(start, end, sqTolerance, simplified) {
-        let maxSqDist = sqTolerance;
-        let index;
+    b.sum += p.v;
+    b.n += 1;
+  }
 
-        for (let i = start + 1; i < end; i++) {
-            const sqDist = getSqSegmentDistance(points[i], points[start], points[end]);
-            if (sqDist > maxSqDist) {
-                index = i;
-                maxSqDist = sqDist;
-            }
-        }
+  const keys = Array.from(buckets.keys()).sort((a, b) => a - b);
 
-        if (maxSqDist > sqTolerance) {
-            if (index - start > 1) simplifyRecursive(start, index, sqTolerance, simplified);
-            simplified.push(points[index]);
-            if (end - index > 1) simplifyRecursive(index, end, sqTolerance, simplified);
-        }
-    }
+  const series = keys.map((k) => {
+    const b = buckets.get(k);
+    return {
+      t: k,
+      value: b.sum / b.n,
+    };
+  });
 
-    const simplified = [points[0]];
-    simplifyRecursive(0, points.length - 1, sqTolerance, simplified);
-    simplified.push(points[points.length - 1]);
+  return series.length >= 2 ? series : null;
+}
 
-    return simplified;
+function generatePath(data, svgWidth = 500, svgHeight = 100, rangeHours = 24) {
+  const windowMs = rangeHours * 3600 * 1000;
+  const now = Date.now();
+  const windowStart = now - windowMs;
+
+  let bucketSeconds = 240;
+  if (rangeHours > 24) bucketSeconds = 600;
+  if (rangeHours > 48) bucketSeconds = 900;
+
+  const series = smoothSeriesByTime(data, rangeHours, bucketSeconds);
+  if (!series || series.length < 2) return null;
+
+  const minY = Math.min(...series.map((d) => d.value));
+  const maxY = Math.max(...series.map((d) => d.value));
+  const rangeY = (maxY - minY) || 1;
+
+  const points = series.map((d) => ({
+    x: ((d.t - windowStart) / windowMs) * svgWidth,
+    y: svgHeight - ((d.value - minY) / rangeY) * svgHeight,
+  }));
+
+  const d = buildLinearPath(points);
+  return { d, min: minY, max: maxY };
 }
 
 /******************************************************/
@@ -1340,7 +1372,7 @@ export async function startPeriodicTask(config, hass, appendTo) {
             //console.log(`Tentative de démarrage de la tâche périodique pour ${device.entity}. Intervalle : ${intervalMinutes} minutes.`);
             
             // Vérifie si la première exécution réussit
-            const firstExecutionSuccessful = await performTask(device.entity, hass, appendTo);
+            const firstExecutionSuccessful = await performTask(device, hass, appendTo);
             
             if (!firstExecutionSuccessful) {
                 console.warn(`La première exécution a échoué pour ${device.entity}. Tâche périodique annulée.`);
@@ -1353,7 +1385,7 @@ export async function startPeriodicTask(config, hass, appendTo) {
             
             // Planifier la tâche périodique pour cette entité
             const intervalId = setInterval(() => {
-                performTask(device.entity, hass, appendTo);
+                performTask(device, hass, appendTo);
             }, intervalMinutes * 60 * 1000);
     
             // Stocker l'intervalle dans la Map
@@ -1376,111 +1408,66 @@ export function clearAllIntervals(appendTo) {
     st.intervals.clear();
 }
 
-function performTask(entityId, hass, appendTo) {
-    // Fonction à exécuter périodiquement pour chaque entité
-    //console.log(`Tâche périodique en cours pour l'entité "${entityId}"...`);
-    // Ici tu pourras ajouter la logique de récupération des données
-    
-    const historicalData = fetchHistoricalData(entityId, 24, hass, appendTo); // recup sur 24h
-    
-    if (historicalData === "false") {
-        console.warn(`Impossible de récupérer l'historique pour ${entityId}.`);
-        return false; // Retourne "false" si l'historique n'a pas pu être récupéré
+async function performTask(device, hass, appendTo) {
+    const hours = device.rangeGraph ?? 24;
+    const ok = await fetchHistoricalData(device.entity, hours, hass, appendTo);
+
+    if (ok === false) {
+        console.warn(`Impossible de récupérer l'historique pour ${device.entity}.`);
+        return false;
     }
 
-    //console.log(`Tâche périodique réussie pour ${entityId}.`);
-    return true; // Retourne "true" si tout s'est bien passé
+    return true;
 }
 
-async function fetchHistoricalData(entityId, periodInHours, hass, appendTo, numSegments = 6) {
-    const now = new Date();
-    const startTime = new Date(now.getTime() - periodInHours * 60 * 60 * 1000); // Période spécifiée
+async function fetchHistoricalData(entityId, periodInHours, hass, appendTo) {
+  const now = new Date();
+  const startTime = new Date(now.getTime() - periodInHours * 60 * 60 * 1000);
 
-    if (!hass || !hass.states || !hass.states[entityId]) {
-        console.error(`hass ou l'entité ${entityId} n'est pas encore disponible.`);
-        return false;
+  if (!hass || !hass.states || !hass.states[entityId]) {
+    console.error(`hass ou l'entité ${entityId} n'est pas encore disponible.`);
+    return false;
+  }
+
+  const url =
+    `history/period/${encodeURIComponent(startTime.toISOString())}` +
+    `?filter_entity_id=${encodeURIComponent(entityId)}` +
+    `&end_time=${encodeURIComponent(now.toISOString())}` +
+    `&minimal_response` +
+    `&no_attributes`;
+
+  try {
+    const response = await hass.callApi("GET", url);
+
+    if (!response || response.length === 0 || !response[0] || response[0].length === 0) {
+      console.log(`Aucune donnée disponible pour "${entityId}" dans la période de ${periodInHours} heure(s).`);
+      return false;
     }
 
-    // URL pour l'API Home Assistant
-    const url = `history/period/${startTime.toISOString()}?filter_entity_id=${entityId}&minimal_response=true&significant_changes_only=true`;
+    const rawData = response[0];
 
-    try {
-        const response = await hass.callApi('GET', url);
+    const reducedData = rawData
+      .map((item) => ({
+        time: item.last_changed ? new Date(item.last_changed) : null,
+        value: Number.parseFloat(item.state),
+      }))
+      .filter((item) => item.time && Number.isFinite(item.value))
+      .sort((a, b) => a.time - b.time);
 
-        if (response.length === 0 || response[0].length === 0) {
-            console.log(`Aucune donnée disponible pour "${entityId}" dans la période de ${periodInHours} heure(s).`);
-            return false;
-        }
-
-        const rawData = response[0];
-
-        // Étape 1 : Transformer les données en un format exploitable
-        const formattedData = rawData
-            .map((item) => ({
-                time: new Date(item.last_changed),
-                state: parseFloat(item.state), // Conversion en nombre
-            }))
-            .filter((item) => !isNaN(item.state)); // Filtrer les données invalides
-
-        if (formattedData.length === 0) {
-            console.log(`Aucune donnée valide formatée pour "${entityId}".`);
-            return false;
-        }
-
-        // Étape 2 : Réduire les données en segments tout en maintenant l'échelle Y constante
-        const interval = 30 * 60 * 1000; // 15 minutes en millisecondes
-                const totalIntervals = (periodInHours * 60 * 60 * 1000) / interval; // Calcul du nombre d'intervalles pour la période donnée
-                const startTimestamp = Math.floor(startTime.getTime() / interval) * interval;
-            
-                const reducedData = [];
-                for (let i = 0; i < totalIntervals; i++) {
-                    const targetTime = new Date(startTimestamp + i * interval);
-                    const closest = formattedData.reduce((prev, curr) => {
-                        return Math.abs(curr.time - targetTime) < Math.abs(prev.time - targetTime) ? curr : prev;
-                    });
-                    reducedData.push({ time: targetTime, value: closest.state });
-                }
-        
-        // Étape 2bis : Ajouter les points min et max dans le tableau reducedData
-        const segmentSize = Math.ceil(formattedData.length / numSegments);
-        for (let i = 0; i < formattedData.length; i += segmentSize) {
-            const segment = formattedData.slice(i, i + segmentSize);
-        
-            let minPoint = { value: Infinity, time: null };
-            let maxPoint = { value: -Infinity, time: null };
-        
-            segment.forEach((point) => {
-                if (point.state < minPoint.value) minPoint = { value: point.state, time: point.time };
-                if (point.state > maxPoint.value) maxPoint = { value: point.state, time: point.time };
-            });
-        
-            // Ajouter les min et max au tableau réduit
-            reducedData.push({ time: minPoint.time, value: minPoint.value });
-            reducedData.push({ time: maxPoint.time, value: maxPoint.value });
-        }
-
-        // Étape 3 : Trier par ordre chronologique
-        reducedData.sort((a, b) => a.time - b.time);
-        
-        //console.log(reducedData);
-
-        // Étape 4 : Stocker les données réduites
-		const st = getState(appendTo);
-        st.historicData.set(
-            entityId,
-            reducedData.map((point) => ({
-                time: point.time,
-                value: point.value,
-            }))
-        );
-        
-        st.updateGraphTriggers.set(entityId, true);
-
-        return true;
-    } catch (error) {
-        console.error('Erreur lors de la récupération de l’historique :', error);
-        return false;
+    if (reducedData.length === 0) {
+      console.log(`Aucune donnée valide formatée pour "${entityId}".`);
+      return false;
     }
+
+    const st = getState(appendTo);
+    st.historicData.set(entityId, reducedData);
+    st.updateGraphTriggers.set(entityId, true);
+
+    return true;
+  } catch (error) {
+    console.error("Erreur lors de la récupération de l’historique :", error);
+    return false;
+  }
 }
 
 export const getEntityNames = (entities) => {
@@ -1491,7 +1478,6 @@ export const getFirstEntityName = (entities) => {
   const names = getEntityNames(entities);
   return names.length > 0 ? names[0] : "";
 };
-
 
 export function getDefaultConfig(hass) {
       

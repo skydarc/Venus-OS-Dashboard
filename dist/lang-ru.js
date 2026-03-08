@@ -21,6 +21,8 @@ export default {
     entity2_choice: "Выбор вторичной сущности",
     decimals_choice: "Знаков после запятой",
     enable_graph: "Включить график",
+	graph_range: "Длительность графика (ч)",
+	enable_graphMinMax: "Показать мин. / макс.",
     enable_gauge: "Включить индикатор в %",
     sensorSignIcon: "Показывать иконку направления",
 	gauge_pct_title: "Настройка основного индикатора",

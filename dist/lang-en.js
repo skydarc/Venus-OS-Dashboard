@@ -20,6 +20,8 @@ export default {
     entity_choice: "Entity picker",
     entity2_choice: "Secondary entity picker",
     enable_graph: "Enable graph",
+	graph_range: "Graph duration (h)",
+	enable_graphMinMax: "Display Min / Max",
     enable_gauge: "Enable gauge in %",
 	sensorSignIcon: "Show direction icon",
 	gauge_pct_title: "Main gauge configuration",

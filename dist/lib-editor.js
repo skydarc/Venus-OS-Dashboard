@@ -355,26 +355,51 @@ export function subtabRender(box, config, hass, appendTo) {
                 <ha-form class="cell" id="device_sensor_form"></ha-form>
 				<ha-form class="cell" id="device_sensor2_form"></ha-form>
     
-                <!-- SWITCHS GRAPH ET GAUGE -->
-                <div class="row">
-                  <div class="row cell">
-                    ${t("subtabRender", "enable_graph")} :
-                    <ha-switch class="cell right" 
-                      id="graph_switch"
-                      data-path="devices.${box}.graph" 
-                     ></ha-switch>
-                  </div>
-                </div>
-				
-				<!-- SWITCH SIGN ICON -->
-				<div class="row">
-				  <div class="row cell">
-					${t("subtabRender", "sensorSignIcon")} :
-					<ha-switch class="cell right"
-					  id="sensorSignIcon_switch"
-					  data-path="devices.${box}.sensorSignIcon"
-					></ha-switch>
-				  </div>
+                <div class="box-settings">
+					<!-- SWITCH GRAPH -->
+					<div class="row">
+					  <div class="row cell">
+						${t("subtabRender", "enable_graph")} :
+						<ha-switch class="cell right" 
+						  id="graph_switch"
+						  data-path="devices.${box}.graph" 
+						 ></ha-switch>
+					  </div>
+					</div>
+					
+					<!-- RANGE GRAPH -->
+					<div class="row graph-range-row">
+					  <ha-textfield class="cell"
+						id="graph_range"
+						label="${t("subtabRender", "graph_range")}"
+						data-path="devices.${box}.rangeGraph"
+						type="number"
+						min="1"
+						step="1"
+					  ></ha-textfield>
+					</div>
+					
+					<!-- SWITCH MIN and MAX -->
+					<div class="row graph-minmax-row">
+					  <div class="row cell">
+						${t("subtabRender", "enable_graphMinMax")} :
+						<ha-switch class="cell right"
+						  id="graph_minmax_switch"
+						  data-path="devices.${box}.minMaxGraph"
+						></ha-switch>
+					  </div>
+					</div>
+					
+					<!-- SWITCH SIGN ICON -->
+					<div class="row">
+					  <div class="row cell">
+						${t("subtabRender", "sensorSignIcon")} :
+						<ha-switch class="cell right"
+						  id="sensorSignIcon_switch"
+						  data-path="devices.${box}.sensorSignIcon"
+						></ha-switch>
+					  </div>
+					</div>
 				</div>
             </div>
         </ha-expansion-panel>
@@ -529,6 +554,9 @@ export function subtabRender(box, config, hass, appendTo) {
     const iconPicker = subTabContent.querySelector('#device_icon');
     const nameField = subTabContent.querySelector('#device_name');
     const graphSwitch = subTabContent.querySelector('#graph_switch');
+	const graphRangeField = subTabContent.querySelector('#graph_range');
+	const graphMinMaxSwitch = subTabContent.querySelector('#graph_minmax_switch');
+	const graphMinMaxRow = subTabContent.querySelector('.graph-minmax-row');
     const gaugeSwitch = subTabContent.querySelector('#gauge_switch');
 	const gaugeTextureSwitch = subTabContent.querySelector('#gaugeTexture_switch');
 	const signIconSwitch = subTabContent.querySelector('#sensorSignIcon_switch');
@@ -543,6 +571,23 @@ export function subtabRender(box, config, hass, appendTo) {
 
     const tapCfg = config?.devices?.[box]?.tap_action || {};
     const tapAction = tapCfg?.action ?? "__default__"; // "" = default (=> supprimer clé)
+	
+	graphRangeField.value = config?.devices?.[box]?.rangeGraph ?? 24;
+	
+	function syncGraphOptionsState() {
+	  const graphEnabled = config?.devices?.[box]?.graph === true;
+
+	  if (graphEnabled) {
+		graphRangeRow?.classList.remove("disabled-section");
+		graphMinMaxRow?.classList.remove("disabled-section");
+		graphMinMaxSwitch?.removeAttribute("disabled");
+	  } else {
+		graphRangeRow?.classList.add("disabled-section");
+		graphMinMaxRow?.classList.add("disabled-section");
+		graphMinMaxSwitch?.removeAttribute("checked");
+		graphMinMaxSwitch?.setAttribute("disabled", "");
+	  }
+	}
 
     if (tapActionCombo) {
 	  tapActionCombo.innerHTML = `
@@ -948,8 +993,16 @@ export function subtabRender(box, config, hass, appendTo) {
 	  notifyConfigChange(appendTo);
 	});
 	
-	if (config?.devices?.[box]?.graph === true) graphSwitch.setAttribute('checked', '');
-    
+	if (config?.devices?.[box]?.graph === true) {
+	  graphSwitch.setAttribute('checked', '');
+	}
+
+	if (config?.devices?.[box]?.minMaxGraph === true) {
+	  graphMinMaxSwitch?.setAttribute('checked', '');
+	}
+
+	syncGraphOptionsState();
+
     const selectedEntityId = config?.devices?.[box]?.entity ?? "";
 	const entity = hass.states?.[selectedEntityId];
     const unit = entity?.attributes?.unit_of_measurement;
@@ -1449,11 +1502,21 @@ export function attachInputs(appendTo) {
                 notifyConfigChange(appendTo);
                 
             } else {
-                if (key) {
-                    appendTo._config = updateConfigRecursively(appendTo._config, key, value, true); // Suppression si désactivé
-                    notifyConfigChange(appendTo);
-                }
-            }
+				if (key) {
+					appendTo._config = updateConfigRecursively(appendTo._config, key, value, true);
+
+					// Si on désactive le graph, on supprime aussi minMaxGraph
+					if (key.endsWith(".graph") && !isChecked) {
+						const minMaxKey = key.replace(/\.graph$/, ".minMaxGraph");
+						const rangeKey = key.replace(/\.graph$/, ".rangeGraph");
+						
+						appendTo._config = updateConfigRecursively(appendTo._config, minMaxKey, null, true);
+						appendTo._config = updateConfigRecursively(appendTo._config, rangeKey, null, true);
+					}
+
+					notifyConfigChange(appendTo);
+				}
+			}
         };
         
         // Ajouter l'événement

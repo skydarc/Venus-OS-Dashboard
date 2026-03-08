@@ -99,6 +99,13 @@ export function css(user) {
 				opacity: 0.5;
 				pointer-events: none;
 			}
+			
+			.box-settings {
+			  display: flex;
+			  flex-direction: column;
+			  margin: 15px 0;
+			  gap: 20px;
+			}
             
   `
     return css;

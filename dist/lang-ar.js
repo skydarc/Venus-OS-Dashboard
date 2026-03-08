@@ -21,6 +21,8 @@ export default {
     entity2_choice: "اختيار كيان ثانوي",
     decimals_choice: "عدد المنازل العشرية",
     enable_graph: "تفعيل الرسم البياني",
+	graph_range: "مدة الرسم البياني (س)",
+	enable_graphMinMax: "عرض الحد الأدنى / الحد الأقصى",
     enable_gauge: "تفعيل المؤشر بالنسبة %",
     sensorSignIcon: "إظهار أيقونة الاتجاه",
 	gauge_pct_title: "إعدادات المؤشر الرئيسي",

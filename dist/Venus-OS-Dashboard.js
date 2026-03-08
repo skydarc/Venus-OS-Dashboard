@@ -7,7 +7,7 @@
 */
 
 console.info(
-  "%c 🗲 %c - %cVenus OS BD%c - %c 🗲 \n%c version 0.1.17 ",
+  "%c 🗲 %c - %cVenus OS BD%c - %c 🗲 \n%c version 0.6.2 ",
   "color: white; font-weight: bold; background: black",
   "color: orange; font-weight: bold; background: blue; font-weight: bold;",
   "color: white; font-weight: bold; background: blue; text-decoration: underline; text-decoration-color: orange; text-decoration-thickness: 5px; text-underline-offset: 2px;",

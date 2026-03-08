@@ -20,6 +20,8 @@ export default {
     entity_choice: "Escolher entidade",
     entity2_choice: "Escolher entidade secundária",
     enable_graph: "Ativar gráfico",
+	graph_range: "Duração do gráfico (h)",
+	enable_graphMinMax: "Mostrar mín. / máx.",
     enable_gauge: "Ativar indicador em %",
 	sensorSignIcon: "Mostrar ícone de direção",
 	gauge_pct_title: "Configuración del indicador principal",

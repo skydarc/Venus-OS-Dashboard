@@ -20,6 +20,8 @@ export default {
     entity_choice: "Kies entiteit",
     entity2_choice: "Kies secundaire entiteit",
     enable_graph: "Grafiek inschakelen",
+	graph_range: "Duur van de grafiek (u)",
+	enable_graphMinMax: "Min / max weergeven",
     enable_gauge: "Meter in % inschakelen",
 	sensorSignIcon: "Richtingspictogram weergeven",
 	gauge_pct_title: "Configuratie van de hoofdindicator",

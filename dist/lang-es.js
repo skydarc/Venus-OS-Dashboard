@@ -21,6 +21,8 @@ port default {
     entity2_choice: "Selector de entidad secundaria",
     decimals_choice: "Decimales",
     enable_graph: "Activar gráfico",
+	graph_range: "Duración del gráfico (h)",
+	enable_graphMinMax: "Mostrar mín. / máx.",
     enable_gauge: "Activar medidor en %",
 	sensorSignIcon: "Mostrar icono de dirección",
 	gauge_pct_title: "Configuración del indicador principal",

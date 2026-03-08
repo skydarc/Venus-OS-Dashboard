@@ -21,6 +21,8 @@ export default {
     entity2_choice: "İkincil varlık seçimi",
     decimals_choice: "Ondalık basamak",
     enable_graph: "Grafiği etkinleştir",
+	graph_range: "Grafik süresi (sa)",
+	enable_graphMinMax: "Min / Maks göster",
     enable_gauge: "% göstergesini etkinleştir",
     sensorSignIcon: "Yön simgesini göster",
 	gauge_pct_title: "Ana gösterge yapılandırması",
