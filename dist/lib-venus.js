@@ -198,8 +198,7 @@ export function fillBox(config, styles, isDark, hass, appendTo) {
         const boxIdmax = parseInt(config.param[`boxCol${boxId[0]}`], 10);
         
         if(boxIdtest > boxIdmax )  {
-    		console.error(`Boîte avec l'ID "${boxIdtest}" introuvable.`);
-    		return;
+    		continue;
     	}
             
         const device = devices[boxId];
