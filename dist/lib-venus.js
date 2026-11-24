@@ -1021,8 +1021,98 @@ function creatLine(anchorId1, anchorId2, direction_init, isDarkTheme, appendTo) 
 
 	let points = null;
 
-	if (startH && endH) {
-	  const xMid = Math.round((p1.x + p2.x) / 2);
+	// Cas spécial : deux box de la même colonne, avec ancres latérales du même côté.
+	// On force alors un "couloir" dédié dans l'espace inter-colonnes :
+	// - 25% si on passe par l'espace à droite de la colonne
+	// - 75% si on passe par l'espace à gauche de la colonne
+	const colA = Number(anchorId1[0]);
+	const colB = Number(anchorId2[0]);
+
+	if (colA === colB && startH && endH && d1.dx === d2.dx) {
+
+	  const dashboard = appendTo.querySelector('#dashboard');
+	  const currentColumn = appendTo.querySelector(`#column-${colA}`);
+	  const neighbourColumn = appendTo.querySelector(`#column-${colA + d1.dx}`);
+
+  	  let xLane = null;
+
+	  if (dashboard && currentColumn && neighbourColumn) {
+	    const dashboardRect = dashboard.getBoundingClientRect();
+	    const currentRect = currentColumn.getBoundingClientRect();
+	    const neighbourRect = neighbourColumn.getBoundingClientRect();
+	
+	    let leftBound;
+	    let rightBound;
+	    let ratio;
+	
+	    if (d1.dx === 1) {
+	      // espace entre colonne courante et colonne de droite
+	      leftBound = currentRect.right;
+	      rightBound = neighbourRect.left;
+	      ratio = 0.25;
+	    } else {
+	      // espace entre colonne de gauche et colonne courante
+	      leftBound = neighbourRect.right;
+	      rightBound = currentRect.left;
+	      ratio = 0.75;
+	    }
+	
+	    if (rightBound > leftBound && dashboardRect.width > 0) {
+	      const lanePx = leftBound + (rightBound - leftBound) * ratio;
+	      xLane = (lanePx - dashboardRect.left) * 1000 / dashboardRect.width;
+	    }
+	  }
+
+	  if (xLane !== null) {
+	    pathData = roundedOrthogonalPath([
+	      pStart,
+	      p1,
+	      { x: xLane, y: p1.y },
+	      { x: xLane, y: p2.y },
+	      p2,
+	      pEnd
+	    ], r0);
+  	  } else {
+	    const xMid = Math.round((p1.x + p2.x) / 2);
+	
+	    const dx1 = Math.abs(xMid - p1.x);
+	    const dy1 = Math.abs(p2.y - p1.y);
+	
+	    const r = Math.max(0, Math.min(r0, dx1, dy1 / 2));
+	
+	    const sx = xMid >= p1.x ? 1 : -1;
+	    const sy = p2.y >= p1.y ? 1 : -1;
+
+	    if (r < 0.001) {
+	      pathData = `M ${pStart.x} ${pStart.y}
+	                  L ${p1.x} ${p1.y}
+	                  L ${xMid} ${p1.y}
+	                  L ${xMid} ${p2.y}
+	                  L ${p2.x} ${p2.y}
+	                  L ${pEnd.x} ${pEnd.y}`;
+	    } else {
+	      const y1 = p1.y;
+	      const y2 = p2.y;
+	
+	      const sweepTop = (sx === 1 && sy === 1) || (sx === -1 && sy === -1) ? 1 : 0;
+	      const sweepBot = 1 - sweepTop;
+	
+	      pathData = [
+	        `M ${pStart.x} ${pStart.y}`,
+	        `L ${p1.x} ${p1.y}`,
+	        `L ${xMid - sx * r} ${y1}`,
+	        `A ${r} ${r} 0 0 ${sweepTop} ${xMid} ${y1 + sy * r}`,
+	        `L ${xMid} ${y2 - sy * r}`,
+	        `A ${r} ${r} 0 0 ${sweepBot} ${xMid + sx * r} ${y2}`,
+	        `L ${p2.x} ${p2.y}`,
+	        `L ${pEnd.x} ${pEnd.y}`,
+	      ].join(" ");
+	    }
+  	  }
+
+	}
+	else if (startH && endH) {
+  	  const xMid = Math.round((p1.x + p2.x) / 2);
 
 	  const dx1 = Math.abs(xMid - p1.x);
 	  const dy1 = Math.abs(p2.y - p1.y);
