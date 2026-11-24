@@ -80,6 +80,10 @@ class venusOsDashboardCard extends HTMLElement {
     const boxCol2 = param.boxCol2 ? Math.min(Math.max(param.boxCol2, 1), 4) : 1;
     const boxCol3 = param.boxCol3 ? Math.min(Math.max(param.boxCol3, 1), 4) : 1;
 
+   const limitBoxCol1 = param.limitBoxCol1 ?? false;
+   const limitBoxCol2 = param.limitBoxCol2 ?? false;
+   const limitBoxCol3 = param.limitBoxCol3 ?? false;
+
     // ajout des box
     if (this.config.demo !== true) libVenus.addBox(boxCol1, boxCol2, boxCol3, this.config, this.content);
 
