@@ -128,7 +128,7 @@ editorDiv.appendChild(themeRow);
             label: 'col. 2',
             value: appendTo._config.param?.boxCol2 ?? 1,
             min: 1,
-            max: 2,
+            max: 4,
             step: 1
         },
         {
