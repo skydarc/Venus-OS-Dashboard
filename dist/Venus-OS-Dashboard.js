@@ -77,7 +77,7 @@ class venusOsDashboardCard extends HTMLElement {
 
     // recuperation des quantités de box a créer par colonne dans les parametres
     const boxCol1 = param.boxCol1 ? Math.min(Math.max(param.boxCol1, 1), 4) : 1;
-    const boxCol2 = param.boxCol2 ? Math.min(Math.max(param.boxCol2, 1), 2) : 1;
+    const boxCol2 = param.boxCol2 ? Math.min(Math.max(param.boxCol2, 1), 4) : 1;
     const boxCol3 = param.boxCol3 ? Math.min(Math.max(param.boxCol3, 1), 4) : 1;
 
     // ajout des box
