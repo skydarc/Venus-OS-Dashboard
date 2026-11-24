@@ -1058,9 +1058,10 @@ export function subtabRender(box, config, hass, appendTo) {
 	const entity = hass.states?.[selectedEntityId];
     const unit = entity?.attributes?.unit_of_measurement;
 
+	const gaugePanel = subTabContent.querySelector("#subPanel_gaugePct");
+
     if(unit !== '%' ) {
 		
-		const gaugePanel = subTabContent.querySelector("#subPanel_gaugePct");
 		gaugePanel?.classList.add("disabled-section");
 		
         gaugeSwitch.setAttribute('disabled', '');
